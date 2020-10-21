@@ -26,6 +26,9 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    setenv("variable_prueba", "valor antes del fork()", 0); // Escribimos una nueva variable de entorno (sin sobreescribir): "variable_prueba" -> "valor"
+    printf("Acabamos de crear una nueva variable de entorno\n");
+
     proc_id = fork();
     if (((int)proc_id) == -1)
     {
@@ -53,6 +56,9 @@ int main()
             fclose(arch1);
             exit(EXIT_FAILURE);
         }
+
+        setenv("variable_prueba", "esto es del hijo\n", 1); // Cambiamos el valor de la variable de entorno
+        printf("Acabamos de cambiar el valor de la variable de entorno en el hijo\n");
     }
     else
     { // Este proceso es el padre
@@ -67,13 +73,18 @@ int main()
             fclose(arch1);
             exit(EXIT_FAILURE);
         }
+        setenv("variable_prueba", "esto es del padre\n", 1); // Cambiamos el valor de la variable de entorno
+        printf("Acabamos de cambiar el valor de la variable de entorno en el padre\n");
     }
     printf("Después del fork():\n\tvar_global (%p)=%d\n\tvar_local (%p)=%d\n\tvar_dinamica (%p)=%d\n", (void *)&var_global, var_global, (void *)&var_local, var_local, (void *)var_dinamica, *var_dinamica); // Imprimimos los valores y posiciones en memoria virtual de las variables después del fork()
     printf("Descriptor del archivo 1: %d\nDescriptor del archivo 2: %d\n", fileno(arch1), fileno(arch2));
     sleep(20); // Metemos un sleep() para mantener ambos procesos en ejecución durante un tiempo
     fprintf(arch2, "%s\n", ((int)proc_id) == 0 ? "hijo" : "padre"); // Escribimos en salida2.txt. Ya no será una carrera crítica porque hay mucha diferencia de tiempo entre cuándo se ejecuta estar orden en el padre y en el hijo. Solo veremos escrito "hijo" porque no se comparte el puntero en el fichero, entre padre e hijo, ya que los hemos abierto con open() distintos.
+    printf("Valor de la variable de entorno: %s\n", getenv("variable_prueba")); // Imprimimos la variable de entorno que establecimos arriba
+    printf("UID: %d; UID efectivo: %d, GID: %d\n", (unsigned int) getuid(), (unsigned int) geteuid(), (unsigned int) getgid());
     printf("El %s sale.\n", ((int)proc_id) == 0 ? "hijo" : "padre");
-    fclose(arch1);
+    fclose(arch1); // Cerramos los archivos
     fclose(arch2);
+    unsetenv("variable_prueba"); // Eliminamos la variable de entorno, primero en el padre y después en el hijo
     exit(EXIT_SUCCESS);
 }
