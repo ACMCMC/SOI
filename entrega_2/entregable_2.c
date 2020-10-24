@@ -5,9 +5,11 @@
 #define EXIT_HIJO1 10
 #define EXIT_HIJO2 20
 
+// Se puede usar ps -v -g (PID DEL PADRE) para ver información de los procesos
+
 int main()
 {
-    pid_t pid1, pid2;
+    pid_t pid1, pid2, pid_proc;
     int stat_loc;    // Información sobre la salida del hijo, se guarda todo en un int
     int exit_status; // El código de salida del hijo, se obtiene a partir de stat_loc
     
@@ -41,7 +43,7 @@ int main()
             printf("HIJO 2 (%d)\n", (int)getpid());
             sleep(10);
 
-            if (execlp("echo", "echo", "prueba del comando echo", (char*) NULL) == -1 ) { // Probamos a ejecutar otro comando. Debería imprimirse "prueba del comando echo" por consola
+            if (execlp("echo", "echo", "Prueba del comando echo", (char*) NULL) == -1 ) { // Probamos a ejecutar otro comando. Debería imprimirse "prueba del comando echo" por consola y este código dejaría de ejecutarse aquí, ya que hemos cambiado la imagen del proceso por la del echo
                 perror("Error ejecutando execlp");
             }
 
@@ -51,7 +53,7 @@ int main()
         }
         else
         {
-            wait(&stat_loc);                     // Esperar por el hijo a que acabe, guarda en stat_loc la información sobre su salida. La información que obtendremos será del primer hijo, porque el segundo aún estará en el sleep(10) de arriba
+            waitpid(pid1, &stat_loc, 0);                     // Esperar por el primer hijo a que acabe, guarda en stat_loc la información sobre su salida. La información que obtendremos será del primer hijo, porque estamos usando waitpid
             exit_status = WEXITSTATUS(stat_loc); // Obtenemos el código de salida del hijo
             if (exit_status == EXIT_HIJO1) // Sabemos qué hijo es el que sale por el código de salida. También podríamos saberlo usando el resultado del wait(), que nos da el PID
             {
@@ -65,6 +67,11 @@ int main()
             {
                 printf("Se ha obtenido un código de salida inesperado (%d)\n", exit_status);
             }
+
+            pid_proc = wait( &stat_loc ); // Esperamos a que acabe el segundo hijo (ya que el primero no puede acabar porque ya hemos esperado por él)
+            exit_status = WEXITSTATUS(stat_loc);
+
+            printf("El código de salida del hijo %s es %d\n", (pid_proc == pid1) ? "1" : (pid_proc == pid2) ? "2" : "DESCONOCIDO", exit_status); // Esto siempre debería imprimir el código de salida del hijo 2, que debería ser 0 porque es lo que devuelve el comando echo
 
             printf("El padre sale\n");
         }
