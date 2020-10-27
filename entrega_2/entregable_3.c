@@ -6,11 +6,14 @@
 int main()
 {
     int i;
-    double res = 0;
-    pid_t pid1, pid2, pid3;
+    double res = 0, res_hijo1, res_hijo2;
+    pid_t pid1, pid2, pid3, pid4, pid5, pid;
+    int stat_loc1, stat_loc2, stat_loc5, stat_loc;
     FILE *out;
 
-    out = fopen("salida_calculo", "w");
+    printf("PID DEL PROCESO PADRE: %d\n", getpid());
+
+    out = fopen("salida_calculo", "wb");
     if (out == NULL)
     {
         perror("Error abriendo el archivo de salida");
@@ -32,8 +35,6 @@ int main()
         }
         res = res / (10000000.0 / 2.0);
         printf("Resultado pares: %f\n", res);
-
-        out = fopen("salida_hijo1", "w");
 
         fwrite(&res, sizeof(double), 1, out);
 
@@ -81,10 +82,130 @@ int main()
             }
             else
             { // Este es el padre
+                // Esperamos por los hijos 1 y 2
+                pid = waitpid(pid1, &stat_loc1, 0);
+                if (pid == -1)
+                {
+                    perror("Error al ejecutar el wait. Abortando.");
+                    fclose(out);
+                    exit(EXIT_FAILURE);
+                }
+                if (!WIFEXITED(stat_loc1) || WEXITSTATUS(stat_loc1) != EXIT_SUCCESS)
+                {
+                    fprintf(stderr, "Algo ha ido mal en el proceso %d. Abortando. Código de retorno: %d\n", pid1, WEXITSTATUS(stat_loc1));
+                    fclose(out);
+                    exit(EXIT_FAILURE);
+                }
+
+                pid = waitpid(pid2, &stat_loc2, 0);
+                if (pid == -1)
+                {
+                    perror("Error al ejecutar el wait. Abortando.");
+                    fclose(out);
+                    exit(EXIT_FAILURE);
+                }
+                if (!WIFEXITED(stat_loc2) || WEXITSTATUS(stat_loc2) != EXIT_SUCCESS)
+                {
+                    fprintf(stderr, "Algo ha ido mal en el proceso %d. Abortando. Código de retorno: %d\n", pid2, WEXITSTATUS(stat_loc2));
+                    fclose(out);
+                    exit(EXIT_FAILURE);
+                }
+
+                // Ahora que los hijos 1 y 2 han terminado, calculamos el resultado en base a las contribuciones de los dos
+
+                pid4 = fork();
+
+                if (pid4 < 0)
+                {
+                    perror("Error ejecutando el fork()");
+                    exit(EXIT_FAILURE);
+                }
+                else if (pid4 == 0)
+                {                // Este es el cuarto hijo
+                    fclose(out); // Cerramos el archivo que había abierto el padre y lo abrimos de nuevo para obtener un nuevo descriptor de archivo independiente, así si nos movemos por él no moveremos al resto de procesos
+                    fopen("salida_calculo", "wb");
+                    fread(&res_hijo1, sizeof(double), 1, out); // Leemos los resultados de los dos primeros hijos, que son los dos primeros valores del archivo
+                    fread(&res_hijo2, sizeof(double), 1, out);
+                    res = (res_hijo1 + res_hijo2) / 2.0;  // Calculamos su media
+                    fseek(out, 0, SEEK_END);              // Nos situamos al final del archivo, ya que podría haber escrito el tercer hijo su resultado
+                    fwrite(&res, sizeof(double), 1, out); // Escribimos el resultado de la media de los dos valores en el archivo
+                }
+                else
+                { // Este es el padre
+
+                    // Antes de ejecutar el quinto proceso, tenemos que esperar por el 3 y el 4. Ejecutamos dos wait, porque sabemos que tenemos que esperar a dos hijos, pero no nos importa el orden.
+
+                    pid = wait(&stat_loc);
+                    if (pid == -1)
+                    {
+                        perror("Error al ejecutar el wait. Abortando.");
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
+                    if (!WIFEXITED(stat_loc) || WEXITSTATUS(stat_loc) != EXIT_SUCCESS)
+                    {
+                        fprintf(stderr, "Algo ha ido mal en el proceso %d. Abortando. Código de retorno: %d\n", pid, WEXITSTATUS(stat_loc));
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
+
+                    pid = wait(&stat_loc);
+                    if (pid == -1)
+                    {
+                        perror("Error al ejecutar el wait. Abortando.");
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
+                    if (!WIFEXITED(stat_loc) || WEXITSTATUS(stat_loc) != EXIT_SUCCESS)
+                    {
+                        fprintf(stderr, "Algo ha ido mal en el proceso %d. Abortando. Código de retorno: %d\n", pid, WEXITSTATUS(stat_loc));
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
+
+                    // Antes de entrar al quinto proceso, leemos el archivo de resultados para saber lo que devolvieron los procesos 3 y 4
+
+                    fseek(out, -2 * sizeof(double), SEEK_CUR);
+                    fread(&res_hijo1, sizeof(double), 1, out);
+                    fread(&res_hijo2, sizeof(double), 1, out);
+
+                    // Ahora ejecutamos el quinto proceso
+
+                    pid5 = fork();
+                    if (pid5 < 0)
+                    {
+                        perror("Error ejecutando el fork()");
+                        exit(EXIT_FAILURE);
+                    }
+                    else if (pid5 == 0)
+                    { // Este es el quinto hijo
+                        printf("Diferencia de los resultados: %lf\n", fabs(res_hijo1 - res_hijo2));
+                    }
+                    else
+                    { // Este es el padre
+
+                        // Esperamos a que acabe el quinto y último proceso desde el padre
+
+                        pid = waitpid(pid5, &stat_loc5, 0);
+                        if (pid == -1)
+                        {
+                            perror("Error al ejecutar el wait. Abortando.");
+                            fclose(out);
+                            exit(EXIT_FAILURE);
+                        }
+                        if (!WIFEXITED(stat_loc2) || WEXITSTATUS(stat_loc2) != EXIT_SUCCESS)
+                        {
+                            fprintf(stderr, "Algo ha ido mal en el proceso %d. Abortando. Código de retorno: %d\n", pid2, WEXITSTATUS(stat_loc2));
+                            fclose(out);
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
             }
         }
     }
-    fclose(out);
+
+    fclose(out); // Esto deben ejecutarlo todos los procesos
 
     exit(EXIT_SUCCESS);
 }
