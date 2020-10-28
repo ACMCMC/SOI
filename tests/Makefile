@@ -1,4 +1,4 @@
-FILES := test_abrircerrarenhijo.c test_leerdoubles.c
+FILES := test_abrircerrarenhijo.c test_leerdoubles.c test_errnofork.c
 OBJS := $(FILES:.c=.o)
 OUTPUTS := $(FILES:.c=.out)
 
