@@ -32,7 +32,11 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    setenv("variable_prueba", "valor antes del fork()", 0); // Escribimos una nueva variable de entorno (sin sobreescribir): "variable_prueba" -> "valor"
+    if (setenv("variable_prueba", "valor antes del fork()", 0)) { // Escribimos una nueva variable de entorno (sin sobreescribir): "variable_prueba" -> "valor"
+        perror("Error ejecutando setenv(). Abortando.");
+        exit(EXIT_FAILURE);
+    }
+
     if (printf("Acabamos de crear una nueva variable de entorno\n") < 0)
     {
         perror("Error ejecutando printf()");

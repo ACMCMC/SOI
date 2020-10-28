@@ -4,13 +4,15 @@
 #include <stdio.h>
 #include <math.h>
 
+#define FILE_OUT "salida_calculo.bin"
+
 int main()
 {
-    int i;
-    double res = 0, res_hijo1, res_hijo2;
-    pid_t pid1, pid2, pid3, pid4, pid5, pid;
-    int stat_loc1, stat_loc2, stat_loc5, stat_loc;
-    FILE *out;
+    int i; // Variable auxiliar
+    double res = 0, res_hijo1, res_hijo2; // Donde guardaremos los resulatados de los procesos hijo 1, 2; y 3 y 4
+    pid_t pid1, pid2, pid3, pid4, pid5, pid; // Para guardar los PID de los procesos
+    int stat_loc1, stat_loc2, stat_loc5, stat_loc; // Códigos de retorno de los procesos cuando hagamos el wait()
+    FILE *out; // Puntero a archivo donde guardaremos resultados
 
     if (printf("PID DEL PROCESO PADRE: %d\n", getpid()) < 0)
     {
@@ -18,7 +20,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    out = fopen("salida_calculo.bin", "wb+");
+    out = fopen(FILE_OUT, "wb+"); // Abrimos el archivo en modo lectura y escritura
     if (out == NULL)
     {
         perror("Error abriendo el archivo de salida");
@@ -164,7 +166,7 @@ int main()
                 else if (pid4 == 0)
                 {                // Este es el hijo 4
                     fclose(out); // Cerramos el archivo que había abierto el padre y lo abrimos de nuevo para obtener un nuevo descriptor de archivo independiente, así si nos movemos por él no moveremos al resto de procesos
-                    out = fopen("salida_calculo.bin", "ab+");
+                    out = fopen(FILE_OUT, "ab+");
                     if (out == NULL)
                     {
                         perror("Error. Abortando el hijo 4.\n");
