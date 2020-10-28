@@ -18,7 +18,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    out = fopen("salida_calculo", "wb+");
+    out = fopen("salida_calculo.bin", "wb+");
     if (out == NULL)
     {
         perror("Error abriendo el archivo de salida");
@@ -163,7 +163,7 @@ int main()
                 else if (pid4 == 0)
                 {                // Este es el cuarto hijo
                     fclose(out); // Cerramos el archivo que había abierto el padre y lo abrimos de nuevo para obtener un nuevo descriptor de archivo independiente, así si nos movemos por él no moveremos al resto de procesos
-                    out = fopen("salida_calculo", "ab+");
+                    out = fopen("salida_calculo.bin", "ab+");
                     if (out == NULL)
                     {
                         perror("Error. Abortando el hijo 4.\n");
