@@ -1,3 +1,4 @@
+#include <printf.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,8 +14,7 @@ int main()
 
     if (printf("PID DEL PROCESO PADRE: %d\n", getpid()) < 0)
     {
-        fprintf(stderr, "%s\n", explain_printf("PID DEL PROCESO PADRE: %d\n"));
-        fclose(out);
+        perror("Error ejecutando printf()");
         exit(EXIT_FAILURE);
     }
 
@@ -43,7 +43,7 @@ int main()
 
         if (printf("Resultado pares: %lf\n", res) < 0)
         {
-            fprintf(stderr, "%s\n", explain_printf("Resultado pares: %lf\n"));
+            perror("Error ejecutando printf()");
             fclose(out);
             exit(EXIT_FAILURE);
         }
@@ -74,7 +74,7 @@ int main()
             res = res / (10000000.0 / 2.0);
             if (printf("Resultado impares: %lf\n", res) < 0)
             {
-                fprintf(stderr, "%s\n", explain_printf("Resultado impares: %lf\n"));
+                perror("Error ejecutando printf()");
                 fclose(out);
                 exit(EXIT_FAILURE);
             }
@@ -106,7 +106,7 @@ int main()
 
                 if (printf("Resultado completo: %lf\n", res) < 0)
                 {
-                    fprintf(stderr, "%s\n", explain_printf("Resultado completo: %lf\n"));
+                    perror("Error ejecutando printf()");
                     fclose(out);
                     exit(EXIT_FAILURE);
                 }
@@ -240,7 +240,7 @@ int main()
                     { // Este es el quinto hijo
                         if (printf("Diferencia de los resultados: %lf\n", fabs(res_hijo1 - res_hijo2)) < 0)
                         {
-                            fprintf(stderr, "%s\n", explain_printf("Resultado completo: %lf\n"));
+                            perror("Error ejecutando printf()");
                             fclose(out);
                             exit(EXIT_FAILURE);
                         }
