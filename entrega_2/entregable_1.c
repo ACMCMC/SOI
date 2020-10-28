@@ -78,7 +78,11 @@ int main()
         var_global += 10; // Sumamos un valor distinto a todas sus variables para ver cómo se guardan en posiciones de memoria física diferentes aunque en memoria virtual parezcan las mismas posiciones
         var_local += 10;
         *var_dinamica += 10;
-        fclose(arch1); // Cerramos el archivo salida.txt (con file descriptor 3)
+        if (fclose(arch1))
+        { // Cerramos el archivo salida.txt (con file descriptor 3)
+            perror("Error ejecutando fclose(arch1) en el hijo");
+            exit(EXIT_FAILURE);
+        }
         arch1 = NULL;
         arch2 = fopen("salida2.txt", "w+"); // Abrimos otro archivo salida2.txt, recibirá el file descriptor 3 MIENTRAS en el padre ese mismo file descriptor sigue apuntando a salida.txt
         if (arch2 == NULL)
@@ -136,7 +140,7 @@ int main()
         exit(EXIT_FAILURE);
     } // Imprimimos los valores y posiciones en memoria virtual de las variables después del fork()
 
-    if (printf("Descriptor del archivo 1: %d\nDescriptor del archivo 2: %d\n", ((int)proc_id) == 0 ? -1 : fileno(arch1) , fileno(arch2)) < 0)
+    if (printf("Descriptor del archivo 1: %d\nDescriptor del archivo 2: %d\n", ((int)proc_id) == 0 ? -1 : fileno(arch1), fileno(arch2)) < 0)
     {
         perror("Error ejecutando printf()");
         fclose(arch1);
@@ -178,7 +182,7 @@ int main()
         exit(EXIT_FAILURE);
     }
     // Cerramos los archivos y eliminamos la variable de entorno, tanto en el padre como en el hijo
-    if (arch1!=NULL && fclose(arch1)) // En el hijo, arch1=NULL, así que no lo cerramos
+    if (arch1 != NULL && fclose(arch1)) // En el hijo, arch1=NULL, así que no lo cerramos
     {
         perror("Error saliendo del programa (fclose(arch1))");
         exit(EXIT_FAILURE);
