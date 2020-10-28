@@ -1,6 +1,6 @@
 SUBDIRS_ENTREGAS := ./entrega_2
 
-SUBDIRS_PRACTICAS := ./prac_1 ./tests
+SUBDIRS_PRACTICAS := ./prac_1 ./tests ./foro_hilos
 
 $(SUBDIRS_ENTREGAS):
 	$(MAKE) -C $@ -s
