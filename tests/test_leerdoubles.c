@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 int main() {
-    FILE* fp = fopen("salida_calculo", "rb");
+    FILE* fp = fopen("salida_calculo.bin", "rb");
     double num;
     int i = 0;
     while (!feof(fp)) {

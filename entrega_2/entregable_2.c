@@ -38,7 +38,7 @@ int main()
     else
     { // Este es el proceso padre
 
-        sleep(10);     // El padre hace un sleep, y en ese tiempo el primer hijo se vuelve un proceso zombie
+        sleep(10);     // El padre hace un sleep, y en ese tiempo el primer hijo se vuelve un proceso zombie. No es necesario comprobar errores.
         pid2 = fork(); // Creamos un nuevo proceso
 
         if (((int)pid2) == -1)
@@ -53,7 +53,8 @@ int main()
                 perror("Error ejecutando printf()");
                 exit(EXIT_FAILURE);
             }
-            sleep(10);
+
+            sleep(10); // No necesitamos comprobar errores en sleep(), porque su único posible error es que no espere el tiempo adecuado
 
             if (execlp("echo", "echo", "Prueba del comando echo", (char *)NULL) == -1)
             { // Probamos a ejecutar otro comando. Debería imprimirse "prueba del comando echo" por consola y este código dejaría de ejecutarse aquí, ya que hemos cambiado la imagen del proceso por la del echo
@@ -66,8 +67,17 @@ int main()
         }
         else
         {
-            waitpid(pid1, &stat_loc, 0);         // Esperar por el primer hijo a que acabe, guarda en stat_loc la información sobre su salida. La información que obtendremos será del primer hijo, porque estamos usando waitpid
+            pid_proc = waitpid(pid1, &stat_loc, 0);         // Esperar por el primer hijo a que acabe, guarda en stat_loc la información sobre su salida. La información que obtendremos será del primer hijo, porque estamos usando waitpid
+            if (pid_proc == -1) {
+                perror("Error en el wait. Abortando.");
+                exit(EXIT_FAILURE);
+            }
             exit_status = WEXITSTATUS(stat_loc); // Obtenemos el código de salida del hijo
+            if (!WIFEXITED(stat_loc)) {
+                perror("El proceso hijo no terminó normalmente. Abortando.");
+                exit(EXIT_FAILURE);
+            }
+
             if (exit_status == EXIT_HIJO1)       // Sabemos qué hijo es el que sale por el código de salida. También podríamos saberlo usando el resultado del wait(), que nos da el PID
             {
                 if (printf("Se ha obtenido el código de salida esperado del primer hijo (%d)\n", exit_status) < 0)
@@ -94,7 +104,15 @@ int main()
             }
 
             pid_proc = wait(&stat_loc); // Esperamos a que acabe el segundo hijo (ya que el primero no puede acabar porque ya hemos esperado por él)
+            if (pid_proc == -1) {
+                perror("Error en el wait. Abortando.");
+                exit(EXIT_FAILURE);
+            }
             exit_status = WEXITSTATUS(stat_loc);
+            if (!WIFEXITED(stat_loc)) {
+                perror("El proceso hijo no terminó normalmente. Abortando.");
+                exit(EXIT_FAILURE);
+            }
 
             if (printf("El código de salida del hijo %s es %d\n", (pid_proc == pid1) ? "1" : (pid_proc == pid2) ? "2" : "DESCONOCIDO", exit_status) < 0)
             {

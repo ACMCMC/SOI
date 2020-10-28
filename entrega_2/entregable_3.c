@@ -111,6 +111,7 @@ int main()
                     exit(EXIT_FAILURE);
                 }
 
+                fseek(out, 0, SEEK_END); // Puede que el hijo 4 acabe antes que el 3, así que para eso nos movemos al final del archivo antes de escribir. Esta es una situación de carrera crítica.
                 fwrite(&res, sizeof(double), 1, out);
                 if (ferror(out))
                 { // Comprobamos si se ha producido algún error en el archivo
@@ -161,7 +162,7 @@ int main()
                     exit(EXIT_FAILURE);
                 }
                 else if (pid4 == 0)
-                {                // Este es el cuarto hijo
+                {                // Este es el hijo 4
                     fclose(out); // Cerramos el archivo que había abierto el padre y lo abrimos de nuevo para obtener un nuevo descriptor de archivo independiente, así si nos movemos por él no moveremos al resto de procesos
                     out = fopen("salida_calculo.bin", "ab+");
                     if (out == NULL)
@@ -170,6 +171,7 @@ int main()
                         fclose(out);
                         exit(EXIT_FAILURE);
                     }
+                    fseek(out, 0, SEEK_SET); // Nos situamos al principio del archivo
                     fread(&res_hijo1, sizeof(double), 1, out); // Leemos los resultados de los dos primeros hijos, que son los dos primeros valores del archivo
                     fread(&res_hijo2, sizeof(double), 1, out);
                     res = (res_hijo1 + res_hijo2) / 2.0;  // Calculamos su media
@@ -217,7 +219,7 @@ int main()
 
                     // Antes de entrar al quinto proceso, leemos el archivo de resultados para saber lo que devolvieron los procesos 3 y 4
 
-                    fseek(out, -2 * sizeof(double), SEEK_CUR);
+                    fseek(out, -2 * sizeof(double), SEEK_END); // Vamos a leer los dos últimos números que hemos escrito (resultados del proceso 3 y 4, indistintamente)
                     fread(&res_hijo1, sizeof(double), 1, out);
                     fread(&res_hijo2, sizeof(double), 1, out);
                     if (ferror(out))
