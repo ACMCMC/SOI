@@ -11,9 +11,14 @@ int main()
     int stat_loc1, stat_loc2, stat_loc5, stat_loc;
     FILE *out;
 
-    printf("PID DEL PROCESO PADRE: %d\n", getpid());
+    if (printf("PID DEL PROCESO PADRE: %d\n", getpid()) < 0)
+    {
+        fprintf(stderr, "%s\n", explain_printf("PID DEL PROCESO PADRE: %d\n"));
+        fclose(out);
+        exit(EXIT_FAILURE);
+    }
 
-    out = fopen("salida_calculo", "wb");
+    out = fopen("salida_calculo", "wb+");
     if (out == NULL)
     {
         perror("Error abriendo el archivo de salida");
@@ -25,6 +30,7 @@ int main()
     if (pid1 < 0)
     {
         perror("Error ejecutando el fork()");
+        fclose(out);
         exit(EXIT_FAILURE);
     }
     else if (pid1 == 0)
@@ -34,13 +40,21 @@ int main()
             res += cos(sqrt(i));
         }
         res = res / (10000000.0 / 2.0);
-        printf("Resultado pares: %f\n", res);
+
+        if (printf("Resultado pares: %lf\n", res) < 0)
+        {
+            fprintf(stderr, "%s\n", explain_printf("Resultado pares: %lf\n"));
+            fclose(out);
+            exit(EXIT_FAILURE);
+        }
 
         fwrite(&res, sizeof(double), 1, out);
-
-        fclose(out);
-
-        exit(EXIT_SUCCESS);
+        if (ferror(out))
+        { // Comprobamos si se ha producido algún error en el archivo
+            perror("Error. Abortando el hijo 1.\n");
+            fclose(out);
+            exit(EXIT_FAILURE);
+        }
     }
     else
     { // Este es el padre
@@ -48,6 +62,7 @@ int main()
         if (pid2 < 0)
         {
             perror("Error ejecutando el fork()");
+            fclose(out);
             exit(EXIT_FAILURE);
         }
         else if (pid2 == 0)
@@ -57,9 +72,20 @@ int main()
                 res += cos(sqrt(i));
             }
             res = res / (10000000.0 / 2.0);
-            printf("Resultado impares: %f\n", res);
+            if (printf("Resultado impares: %lf\n", res) < 0)
+            {
+                fprintf(stderr, "%s\n", explain_printf("Resultado impares: %lf\n"));
+                fclose(out);
+                exit(EXIT_FAILURE);
+            }
 
             fwrite(&res, sizeof(double), 1, out);
+            if (ferror(out))
+            { // Comprobamos si se ha producido algún error en el archivo
+                perror("Error. Abortando el hijo 2.\n");
+                fclose(out);
+                exit(EXIT_FAILURE);
+            }
         }
         else
         { // Este es el padre
@@ -67,6 +93,7 @@ int main()
             if (pid3 < 0)
             {
                 perror("Error ejecutando el fork()");
+                fclose(out);
                 exit(EXIT_FAILURE);
             }
             else if (pid3 == 0)
@@ -76,9 +103,21 @@ int main()
                     res += cos(sqrt(i));
                 }
                 res = res / (10000000.0);
-                printf("Resultado completo: %f\n", res);
+
+                if (printf("Resultado completo: %lf\n", res) < 0)
+                {
+                    fprintf(stderr, "%s\n", explain_printf("Resultado completo: %lf\n"));
+                    fclose(out);
+                    exit(EXIT_FAILURE);
+                }
 
                 fwrite(&res, sizeof(double), 1, out);
+                if (ferror(out))
+                { // Comprobamos si se ha producido algún error en el archivo
+                    perror("Error. Abortando el hijo 3.\n");
+                    fclose(out);
+                    exit(EXIT_FAILURE);
+                }
             }
             else
             { // Este es el padre
@@ -118,17 +157,30 @@ int main()
                 if (pid4 < 0)
                 {
                     perror("Error ejecutando el fork()");
+                    fclose(out);
                     exit(EXIT_FAILURE);
                 }
                 else if (pid4 == 0)
                 {                // Este es el cuarto hijo
                     fclose(out); // Cerramos el archivo que había abierto el padre y lo abrimos de nuevo para obtener un nuevo descriptor de archivo independiente, así si nos movemos por él no moveremos al resto de procesos
-                    fopen("salida_calculo", "wb");
+                    out = fopen("salida_calculo", "ab+");
+                    if (out == NULL)
+                    {
+                        perror("Error. Abortando el hijo 4.\n");
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
                     fread(&res_hijo1, sizeof(double), 1, out); // Leemos los resultados de los dos primeros hijos, que son los dos primeros valores del archivo
                     fread(&res_hijo2, sizeof(double), 1, out);
                     res = (res_hijo1 + res_hijo2) / 2.0;  // Calculamos su media
                     fseek(out, 0, SEEK_END);              // Nos situamos al final del archivo, ya que podría haber escrito el tercer hijo su resultado
                     fwrite(&res, sizeof(double), 1, out); // Escribimos el resultado de la media de los dos valores en el archivo
+                    if (ferror(out))
+                    { // Comprobamos si alguna de estas 3 operaciones ha producido algún error en el archivo
+                        perror("Error. Abortando el hijo 4.\n");
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
                 }
                 else
                 { // Este es el padre
@@ -168,6 +220,12 @@ int main()
                     fseek(out, -2 * sizeof(double), SEEK_CUR);
                     fread(&res_hijo1, sizeof(double), 1, out);
                     fread(&res_hijo2, sizeof(double), 1, out);
+                    if (ferror(out))
+                    { // Comprobamos si alguna de estas 3 operaciones ha producido algún error en el archivo
+                        perror("Error. Abortando.\n");
+                        fclose(out);
+                        exit(EXIT_FAILURE);
+                    }
 
                     // Ahora ejecutamos el quinto proceso
 
@@ -175,11 +233,17 @@ int main()
                     if (pid5 < 0)
                     {
                         perror("Error ejecutando el fork()");
+                        fclose(out);
                         exit(EXIT_FAILURE);
                     }
                     else if (pid5 == 0)
                     { // Este es el quinto hijo
-                        printf("Diferencia de los resultados: %lf\n", fabs(res_hijo1 - res_hijo2));
+                        if (printf("Diferencia de los resultados: %lf\n", fabs(res_hijo1 - res_hijo2)) < 0)
+                        {
+                            fprintf(stderr, "%s\n", explain_printf("Resultado completo: %lf\n"));
+                            fclose(out);
+                            exit(EXIT_FAILURE);
+                        }
                     }
                     else
                     { // Este es el padre
@@ -204,6 +268,8 @@ int main()
             }
         }
     }
+
+    //printf("\tSale el proceso con PID %d\n", getpid());
 
     fclose(out); // Esto deben ejecutarlo todos los procesos
 
