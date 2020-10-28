@@ -36,6 +36,7 @@ int main()
     if (printf("Acabamos de crear una nueva variable de entorno\n") < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
         exit(EXIT_FAILURE);
     }
 
@@ -50,6 +51,7 @@ int main()
     if (printf("ID de este proceso: %d\nID del padre: %d\n", (int)getpid(), (int)getppid()) < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
         exit(EXIT_FAILURE);
     } // Imprimimos información sobre este proceso
 
@@ -60,6 +62,7 @@ int main()
         if (printf("HIJO\n") < 0)
         {
             perror("Error ejecutando printf()");
+            fclose(arch1);
             exit(EXIT_FAILURE);
         }
         sleep(10);        // Metemos 10 segundos de espera adicionales para que el hijo se quede huérfamno durante 10 segundos (el padre acabará antes casi seguro)
@@ -79,6 +82,8 @@ int main()
         if (printf("Acabamos de cambiar el valor de la variable de entorno en el hijo\n") < 0)
         {
             perror("Error ejecutando printf()");
+            fclose(arch1);
+            fclose(arch2);
             exit(EXIT_FAILURE);
         }
     }
@@ -87,6 +92,7 @@ int main()
         if (printf("PADRE\n") < 0)
         {
             perror("Error ejecutando printf()");
+            fclose(arch1);
             exit(EXIT_FAILURE);
         }
         var_global += 5; // Sumamos un valor distinto a todas sus variables para ver cómo se guardan en posiciones de memoria física diferentes aunque en memoria virtual parezcan las mismas posiciones
@@ -103,18 +109,24 @@ int main()
         if (printf("Acabamos de cambiar el valor de la variable de entorno en el padre\n") < 0)
         {
             perror("Error ejecutando printf()");
+            fclose(arch1);
+            fclose(arch2);
             exit(EXIT_FAILURE);
         }
     }
     if (printf("Después del fork():\n\tvar_global (%p)=%d\n\tvar_local (%p)=%d\n\tvar_dinamica (%p)=%d\n", (void *)&var_global, var_global, (void *)&var_local, var_local, (void *)var_dinamica, *var_dinamica) < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
+        fclose(arch2);
         exit(EXIT_FAILURE);
     } // Imprimimos los valores y posiciones en memoria virtual de las variables después del fork()
 
     if (printf("Descriptor del archivo 1: %d\nDescriptor del archivo 2: %d\n", fileno(arch1), fileno(arch2)) < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
+        fclose(arch2);
         exit(EXIT_FAILURE);
     } // Imprimimos los descriptores de archivo. En el hijo, el archivo 2 tendrá descriptor 3 porque ya cerramos el archivo 1, que abrió el padre. En el padre, serán 3 y 4, porque ambos estarán abiertos en este punto. Los descriptores locales de archivo, que mapean a una tabla global en el kernel, también se copian en el fork(), pero no se comparten después.
 
@@ -125,18 +137,24 @@ int main()
     if (printf("Valor de la variable de entorno: %s\n", getenv("variable_prueba")) < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
+        fclose(arch2);
         exit(EXIT_FAILURE);
     } // Imprimimos la variable de entorno que establecimos arriba
 
     if (printf("UID: %d; UID efectivo: %d, GID: %d\n", (unsigned int)getuid(), (unsigned int)geteuid(), (unsigned int)getgid()) < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
+        fclose(arch2);
         exit(EXIT_FAILURE);
     }
 
     if (printf("El %s sale.\n", ((int)proc_id) == 0 ? "hijo" : "padre") < 0)
     {
         perror("Error ejecutando printf()");
+        fclose(arch1);
+        fclose(arch2);
         exit(EXIT_FAILURE);
     }
     fclose(arch1); // Cerramos los archivos
