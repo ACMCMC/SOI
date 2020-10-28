@@ -24,7 +24,6 @@ int main()
         perror("Error ejecutando printf()");
         exit(EXIT_FAILURE);
     } // Imprimimos los valores y posiciones en memoria virtual de las variables antes del fork()
-
     arch1 = fopen("salida.txt", "w+");
     if (arch1 == NULL)
     {
@@ -59,7 +58,11 @@ int main()
         exit(EXIT_FAILURE);
     } // Imprimimos información sobre este proceso
 
-    fprintf(arch1, "%s\n", ((int)proc_id) == 0 ? "hijo" : "padre"); // Escribimos en un fichero, esto será una carrera crítica
+    if (fprintf(arch1, "%s\n", ((int)proc_id) == 0 ? "hijo" : "padre") < 0 ) { // Escribimos en un fichero, esto será una carrera crítica
+        perror("Error ejecutando fprintf()");
+        fclose(arch1);
+        exit(EXIT_FAILURE);
+    }
 
     if (proc_id == 0)
     { // Este es el proceso hijo
@@ -74,6 +77,7 @@ int main()
         var_local += 10;
         *var_dinamica += 10;
         fclose(arch1);                      // Cerramos el archivo salida.txt (con file descriptor 3)
+        arch1 = NULL;
         arch2 = fopen("salida2.txt", "w+"); // Abrimos otro archivo salida2.txt, recibirá el file descriptor 3 MIENTRAS en el padre ese mismo file descriptor sigue apuntando a salida.txt
         if (arch2 == NULL)
         {
@@ -134,9 +138,14 @@ int main()
         exit(EXIT_FAILURE);
     } // Imprimimos los descriptores de archivo. En el hijo, el archivo 2 tendrá descriptor 3 porque ya cerramos el archivo 1, que abrió el padre. En el padre, serán 3 y 4, porque ambos estarán abiertos en este punto. Los descriptores locales de archivo, que mapean a una tabla global en el kernel, también se copian en el fork(), pero no se comparten después.
 
-    sleep(20); // Metemos un sleep() para mantener ambos procesos en ejecución durante un tiempo
+    sleep(20); // Metemos un sleep() para mantener ambos procesos en ejecución durante un tiempo. No nos importa comprobar errores aquí.
 
-    fprintf(arch2, "%s\n", ((int)proc_id) == 0 ? "hijo" : "padre"); // Escribimos en salida2.txt. Ya no será una carrera crítica porque hay mucha diferencia de tiempo entre cuándo se ejecuta estar orden en el padre y en el hijo. Solo veremos escrito "hijo" porque no se comparte el puntero en el fichero, entre padre e hijo, ya que los hemos abierto con open() distintos.
+    if (fprintf(arch2, "%s\n", ((int)proc_id) == 0 ? "hijo" : "padre") < 0) { // Escribimos en salida2.txt. Ya no será una carrera crítica porque hay mucha diferencia de tiempo entre cuándo se ejecuta estar orden en el padre y en el hijo. Solo veremos escrito "hijo" porque no se comparte el puntero en el fichero, entre padre e hijo, ya que los hemos abierto con fopen() distintos, y en el modo "w+", por lo que el hijo borra el contenido que había escrito el padre
+        perror("Error ejecutando fprintf()");
+        fclose(arch1);
+        fclose(arch2);
+        exit(EXIT_FAILURE);
+    }
 
     if (printf("Valor de la variable de entorno: %s\n", getenv("variable_prueba")) < 0)
     {
@@ -161,8 +170,19 @@ int main()
         fclose(arch2);
         exit(EXIT_FAILURE);
     }
-    fclose(arch1); // Cerramos los archivos
-    fclose(arch2);
-    unsetenv("variable_prueba"); // Eliminamos la variable de entorno, primero en el padre y después en el hijo
+
+    // Cerramos los archivos y eliminamos la variable de entorno, tanto en el padre como en el hijo
+    if (fclose(arch1)) {
+        perror("Error saliendo del programa (fclose(arch1))");
+        exit(EXIT_FAILURE);
+    }
+    if (fclose(arch2)) {
+        perror("Error saliendo del programa (fclose(arch2))");
+        exit(EXIT_FAILURE);
+    }
+    if(unsetenv("variable_prueba")) {
+        perror("Error saliendo del programa (unsetenv())");
+        exit(EXIT_FAILURE);
+    }
     exit(EXIT_SUCCESS);
 }
