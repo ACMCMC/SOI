@@ -8,11 +8,11 @@
 
 int main()
 {
-    int i; // Variable auxiliar
-    double res = 0, res_hijo1, res_hijo2; // Donde guardaremos los resulatados de los procesos hijo 1, 2; y 3 y 4
-    pid_t pid1, pid2, pid3, pid4, pid5, pid; // Para guardar los PID de los procesos
+    int i;                                         // Variable auxiliar
+    double res = 0, res_hijo1, res_hijo2;          // Donde guardaremos los resulatados de los procesos hijo 1, 2; y 3 y 4
+    pid_t pid1, pid2, pid3, pid4, pid5, pid;       // Para guardar los PID de los procesos
     int stat_loc1, stat_loc2, stat_loc5, stat_loc; // Códigos de retorno de los procesos cuando hagamos el wait()
-    FILE *out; // Puntero a archivo donde guardaremos resultados
+    FILE *out;                                     // Puntero a archivo donde guardaremos resultados
 
     if (printf("PID DEL PROCESO PADRE: %d\n", getpid()) < 0)
     {
@@ -173,7 +173,7 @@ int main()
                         fclose(out);
                         exit(EXIT_FAILURE);
                     }
-                    fseek(out, 0, SEEK_SET); // Nos situamos al principio del archivo
+                    fseek(out, 0, SEEK_SET);                   // Nos situamos al principio del archivo
                     fread(&res_hijo1, sizeof(double), 1, out); // Leemos los resultados de los dos primeros hijos, que son los dos primeros valores del archivo
                     fread(&res_hijo2, sizeof(double), 1, out);
                     res = (res_hijo1 + res_hijo2) / 2.0;  // Calculamos su media

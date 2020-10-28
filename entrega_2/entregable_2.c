@@ -67,18 +67,20 @@ int main()
         }
         else
         {
-            pid_proc = waitpid(pid1, &stat_loc, 0);         // Esperar por el primer hijo a que acabe, guarda en stat_loc la información sobre su salida. La información que obtendremos será del primer hijo, porque estamos usando waitpid
-            if (pid_proc == -1) {
+            pid_proc = waitpid(pid1, &stat_loc, 0); // Esperar por el primer hijo a que acabe, guarda en stat_loc la información sobre su salida. La información que obtendremos será del primer hijo, porque estamos usando waitpid
+            if (pid_proc == -1)
+            {
                 perror("Error en el wait. Abortando.");
                 exit(EXIT_FAILURE);
             }
             exit_status = WEXITSTATUS(stat_loc); // Obtenemos el código de salida del hijo
-            if (!WIFEXITED(stat_loc)) {
+            if (!WIFEXITED(stat_loc))
+            {
                 perror("El proceso hijo no terminó normalmente. Abortando.");
                 exit(EXIT_FAILURE);
             }
 
-            if (exit_status == EXIT_HIJO1)       // Sabemos qué hijo es el que sale por el código de salida. También podríamos saberlo usando el resultado del wait(), que nos da el PID
+            if (exit_status == EXIT_HIJO1) // Sabemos qué hijo es el que sale por el código de salida. También podríamos saberlo usando el resultado del wait(), que nos da el PID
             {
                 if (printf("Se ha obtenido el código de salida esperado del primer hijo (%d)\n", exit_status) < 0)
                 {
@@ -104,12 +106,14 @@ int main()
             }
 
             pid_proc = wait(&stat_loc); // Esperamos a que acabe el segundo hijo (ya que el primero no puede acabar porque ya hemos esperado por él)
-            if (pid_proc == -1) {
+            if (pid_proc == -1)
+            {
                 perror("Error en el wait. Abortando.");
                 exit(EXIT_FAILURE);
             }
             exit_status = WEXITSTATUS(stat_loc);
-            if (!WIFEXITED(stat_loc)) {
+            if (!WIFEXITED(stat_loc))
+            {
                 perror("El proceso hijo no terminó normalmente. Abortando.");
                 exit(EXIT_FAILURE);
             }
