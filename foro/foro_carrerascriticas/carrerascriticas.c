@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 int fichero1, fichero2;
 char caracter;
@@ -18,13 +19,13 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     fichero1 = open(argv[1], 0444); // Abrimos el archivo 1 en modo lectura
-    if (fichero1 == NULL)
+    if (fichero1 < 0)
     {
         perror("Error al abrir el fichero 1");
         exit(EXIT_FAILURE);
     }
     fichero2 = open(argv[2], 0666); // Abrimos el archivo 2 en modo escritura
-    if (fichero2 == NULL)
+    if (fichero2 < 0)
     {
         exit(EXIT_FAILURE);
         perror("Error al abrir el fichero 2");
@@ -33,17 +34,17 @@ int main(int argc, char *argv[])
     if (pid < 0) // Comprobamos que no haya habido errores en el fork
     {
         perror("Error ejecutando fork()");
-        fclose(fichero1);
-        fclose(fichero2);
+        close(fichero1);
+        close(fichero2);
         exit(EXIT_FAILURE);
     }
     leer_escribir(); // Llamamos a la función, tanto en el padre como en el hijo
-    if (fclose(fichero1) == EOF)
+    if (close(fichero1) == EOF)
     {
         fprintf(stderr, "Error cerrando el fichero 1 en el %s: %s\n", (pid == 0) ? "hijo" : "padre", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    if (fclose(fichero2) == EOF)
+    if (close(fichero2) == EOF)
     {
         fprintf(stderr, "Error cerrando el fichero 2 en el %s: %s\n", (pid == 0) ? "hijo" : "padre", strerror(errno));
         exit(EXIT_FAILURE);
@@ -55,8 +56,9 @@ int leer_escribir()
 {
     for (;;)
     {
-        if (read(fichero1, &caracter, 1) != 1)
-            return (0);
-        write(fichero2, &caracter, 1);
+        if (read((int) fichero1, &caracter, 1) != 1) {
+            return (EXIT_SUCCESS);
+        }
+        write((int) fichero2, &caracter, 1);
     }
 }
