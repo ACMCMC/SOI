@@ -12,11 +12,10 @@ int leer_escribir();
 
 int main(int argc, char *argv[])
 {
-    printf("%s\n", argv[3]);
     pid_t pid;
-    if (argc != 3)
+    if (argc != 4)
     { // Salimos con error si no se han especificado los nombres de los archivos 1 y 2
-        fprintf(stderr, "Deben especificarse los nombres de dos ficheros, para leer y escribir\n");
+        fprintf(stderr, "Deben especificarse los nombres de dos ficheros, para leer y escribir, y del número de procesos a ejecutar en paralelo\n");
         exit(EXIT_FAILURE);
     }
     fichero1 = open(argv[1], 0444); // Abrimos el archivo 1 en modo lectura
