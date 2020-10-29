@@ -12,6 +12,7 @@ int leer_escribir();
 
 int main(int argc, char *argv[])
 {
+    printf("%s\n", argv[3]);
     pid_t pid;
     if (argc != 3)
     { // Salimos con error si no se han especificado los nombres de los archivos 1 y 2
