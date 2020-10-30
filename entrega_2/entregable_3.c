@@ -232,7 +232,6 @@ int main()
                     }
 
                     // Ahora ejecutamos el quinto proceso
-
                     pid5 = fork();
                     if (pid5 < 0)
                     {
