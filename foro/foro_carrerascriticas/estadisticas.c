@@ -3,7 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 
-void generar_estadisticas(int tam, int num_procesos, char* nombre_arch_lect, char* nombre_arch_escr, FILE * arch_estadisticas) {
+void generar_estadisticas(int tam, int num_procesos, char *nombre_arch_lect, char *nombre_arch_escr, FILE *arch_estadisticas)
+{
     int num_diferencias = 0;
     FILE *arch_lect, *arch_escr;
     char lectura, escritura;
@@ -21,10 +22,12 @@ void generar_estadisticas(int tam, int num_procesos, char* nombre_arch_lect, cha
         exit(EXIT_FAILURE);
     }
 
-    while (!feof(arch_lect) && !feof(arch_escr)) {
+    while (!feof(arch_lect) && !feof(arch_escr))
+    {
         fscanf(arch_lect, "%c", &lectura);
         fscanf(arch_escr, "%c", &escritura);
-        if (lectura != escritura) {
+        if (lectura != escritura)
+        {
             num_diferencias++;
         }
     }
@@ -78,7 +81,7 @@ void generar_archivos(int tam, char *nombre_arch_lect, char *nombre_arch_escr)
     }
 }
 
-void run_test(int tam, int num_inicial_proc, int incremento_proc, int num_final_proc, FILE* arch_estadisticas)
+void run_test(int tam, int num_inicial_proc, int incremento_proc, int num_final_proc, FILE *arch_estadisticas)
 {
     pid_t pid;
     int stat_loc, num_actual_proc;
@@ -116,13 +119,19 @@ void run_test(int tam, int num_inicial_proc, int incremento_proc, int num_final_
             {
                 perror("Error esperando por el proceso");
                 exit(EXIT_FAILURE);
-            } else if (!WIFEXITED(stat_loc)) {
+            }
+            else if (!WIFEXITED(stat_loc))
+            {
                 fprintf(stderr, "Error en el proceso, no ha salido normalmente");
                 exit(EXIT_FAILURE);
-            } else if (WEXITSTATUS(stat_loc) != EXIT_SUCCESS) {
+            }
+            else if (WEXITSTATUS(stat_loc) != EXIT_SUCCESS)
+            {
                 fprintf(stderr, "Error en el proceso, no ha devuelto EXIT_SUCCESS");
                 exit(EXIT_FAILURE);
-            } else {
+            }
+            else
+            {
                 generar_estadisticas(tam, num_actual_proc, nombre_arch_lect, nombre_arch_escr, arch_estadisticas);
             }
         }
@@ -134,13 +143,15 @@ int main(int argc, char **argv)
     int i, tam_inicial, tam_final, incremento_tam, stat_loc, num_inicial_proc, incremento_proc, num_final_proc;
     pid_t pid = -1;
 
-    FILE* arch_estadisticas;
+    FILE *arch_estadisticas;
 
     if (argc != 7)
     {
         fprintf(stderr, "Deben especificarse: tamaño inicial, incremento de tamaño, tamaño final, numero inicial de procesos, incremento del numero de procesos, numero final de procesos\n");
         exit(EXIT_SUCCESS);
     }
+
+    printf("PID del padre: %d\n", getpid());
 
     tam_inicial = atoi(argv[1]);
     incremento_tam = atoi(argv[2]);
@@ -150,46 +161,51 @@ int main(int argc, char **argv)
     num_final_proc = atoi(argv[6]);
 
     arch_estadisticas = fopen("estadisticas.txt", "w");
-    if (arch_estadisticas == NULL) {
+    if (arch_estadisticas == NULL)
+    {
         perror("Error abriendo el archivo de salida de estadísticas");
-        return(EXIT_FAILURE);
+        return (EXIT_FAILURE);
     }
 
     for (i = tam_inicial; (i <= tam_final) && (pid != 0); i += incremento_tam)
     {
-        pid = fork();
-        if (pid < 0)
+        if (i > 0)
         {
-            perror("Error ejecutando fork(). Abortando.");
-            exit(EXIT_FAILURE);
-        }
-        else if (pid == 0)
-        {
-            run_test(i, num_inicial_proc, incremento_proc, num_final_proc, arch_estadisticas);
-        }
-    }
-
-    if (pid != 0)
-    {
-        for (i = tam_inicial; i <= tam_final; i += incremento_tam)
-        {
-            if ((pid=wait(&stat_loc)) == -1)
+            pid = fork();
+            if (pid < 0)
             {
-                perror("Error esperando por el proceso");
+                perror("Error ejecutando fork(). Abortando.");
                 exit(EXIT_FAILURE);
-            } else if (!WIFEXITED(stat_loc)) {
-                fprintf(stderr, "Error en el proceso, no ha salido normalmente");
-                exit(EXIT_FAILURE);
-            } else if (WEXITSTATUS(stat_loc) != EXIT_SUCCESS) {
-                fprintf(stderr, "Error en el proceso, no ha devuelto EXIT_SUCCESS");
-                exit(EXIT_FAILURE);
+            }
+            else if (pid == 0)
+            {
+                run_test(i, num_inicial_proc, incremento_proc, num_final_proc, arch_estadisticas);
+            }
+            else
+            {
+                if ((pid = waitpid(pid, &stat_loc, 0)) == -1)
+                {
+                    perror("Error esperando por el proceso");
+                    exit(EXIT_FAILURE);
+                }
+                else if (!WIFEXITED(stat_loc))
+                {
+                    fprintf(stderr, "Error en el proceso, no ha salido normalmente");
+                    exit(EXIT_FAILURE);
+                }
+                else if (WEXITSTATUS(stat_loc) != EXIT_SUCCESS)
+                {
+                    fprintf(stderr, "Error en el proceso, no ha devuelto EXIT_SUCCESS");
+                    exit(EXIT_FAILURE);
+                }
             }
         }
     }
 
-    if (fclose(arch_estadisticas)) {
+    if (fclose(arch_estadisticas))
+    {
         perror("Error cerrando el archivo de salida de estadísticas");
-        return(EXIT_FAILURE);
+        return (EXIT_FAILURE);
     }
     return (EXIT_SUCCESS);
 }
