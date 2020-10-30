@@ -98,41 +98,44 @@ void run_test(int tam, int num_inicial_proc, int incremento_proc, int num_final_
 
     for (num_actual_proc = num_inicial_proc; num_actual_proc <= num_final_proc; num_actual_proc += incremento_proc)
     {
-        sprintf(num_actual_proc_string, "%d", num_actual_proc);
-        pid = fork();
-        if (pid < 0)
+        if (num_actual_proc > 0)
         {
-            perror("Error ejecutando fork(). Abortando.");
-            exit(EXIT_FAILURE);
-        }
-        else if (pid == 0)
-        {
-            if (execl("carrerascriticas.out", "carrerascriticas.out", nombre_arch_lect, nombre_arch_escr, num_actual_proc_string, (char *)NULL) < 0)
+            sprintf(num_actual_proc_string, "%d", num_actual_proc);
+            pid = fork();
+            if (pid < 0)
             {
-                perror("Error ejecutando execlp");
+                perror("Error ejecutando fork(). Abortando.");
                 exit(EXIT_FAILURE);
             }
-        }
-        else
-        {
-            if (wait(&stat_loc) == -1)
+            else if (pid == 0)
             {
-                perror("Error esperando por el proceso");
-                exit(EXIT_FAILURE);
-            }
-            else if (!WIFEXITED(stat_loc))
-            {
-                fprintf(stderr, "Error en el proceso, no ha salido normalmente");
-                exit(EXIT_FAILURE);
-            }
-            else if (WEXITSTATUS(stat_loc) != EXIT_SUCCESS)
-            {
-                fprintf(stderr, "Error en el proceso, no ha devuelto EXIT_SUCCESS");
-                exit(EXIT_FAILURE);
+                if (execl("carrerascriticas.out", "carrerascriticas.out", nombre_arch_lect, nombre_arch_escr, num_actual_proc_string, (char *)NULL) < 0)
+                {
+                    perror("Error ejecutando execlp");
+                    exit(EXIT_FAILURE);
+                }
             }
             else
             {
-                generar_estadisticas(tam, num_actual_proc, nombre_arch_lect, nombre_arch_escr, arch_estadisticas);
+                if (wait(&stat_loc) == -1)
+                {
+                    perror("Error esperando por el proceso");
+                    exit(EXIT_FAILURE);
+                }
+                else if (!WIFEXITED(stat_loc))
+                {
+                    fprintf(stderr, "Error en el proceso, no ha salido normalmente");
+                    exit(EXIT_FAILURE);
+                }
+                else if (WEXITSTATUS(stat_loc) != EXIT_SUCCESS)
+                {
+                    fprintf(stderr, "Error en el proceso, no ha devuelto EXIT_SUCCESS");
+                    exit(EXIT_FAILURE);
+                }
+                else
+                {
+                    generar_estadisticas(tam, num_actual_proc, nombre_arch_lect, nombre_arch_escr, arch_estadisticas);
+                }
             }
         }
     }
