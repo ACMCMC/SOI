@@ -1,3 +1,5 @@
+// Aldán Creo Mariño, SOI 2020/21
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -150,7 +152,7 @@ int main(int argc, char **argv)
 
     if (argc != 7)
     {
-        fprintf(stderr, "Deben especificarse: tamaño inicial, incremento de tamaño, tamaño final, numero inicial de procesos, incremento del numero de procesos, numero final de procesos\n");
+        fprintf(stderr, "Deben especificarse: [tamaño inicial del archivo] [incremento] [tamaño final] [numero inicial de procesos] [incremento] [numero final]\n");
         exit(EXIT_SUCCESS);
     }
 
