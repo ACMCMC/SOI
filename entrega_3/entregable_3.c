@@ -38,7 +38,7 @@ int proximoPrimo(int primoAnterior)
     {
         num+=2;
         primo = 1;
-        for (i = 2; i <= num/2; i++)
+        for (i = 2; i <= num/2 && primo; i++) // Mientras no encontremos un divisor del número
         {
             if ((num % i) == 0)
             {
