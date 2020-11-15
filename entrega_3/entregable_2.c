@@ -14,6 +14,17 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+/*
+ _______ .__   __. .___________..______       _______   _______      ___      .______    __       _______     ___   
+|   ____||  \ |  | |           ||   _  \     |   ____| /  _____|    /   \     |   _  \  |  |     |   ____|   |__ \  
+|  |__   |   \|  | `---|  |----`|  |_)  |    |  |__   |  |  __     /  ^  \    |  |_)  | |  |     |  |__         ) | 
+|   __|  |  . `  |     |  |     |      /     |   __|  |  | |_ |   /  /_\  \   |   _  <  |  |     |   __|       / /  
+|  |____ |  |\   |     |  |     |  |\  \----.|  |____ |  |__| |  /  _____  \  |  |_)  | |  `----.|  |____     / /_  
+|_______||__| \__|     |__|     | _| `._____||_______| \______| /__/     \__\ |______/  |_______||_______|   |____| 
+                                                                                                                    
+Aldán Creo Mariño, SOI 2020/21
+*/
+
 pid_t pid1, pid2, pidpadre; // Las usaremos para guardar los PIDs de los procesos para imprimir sus códigos
 struct timespec tinicio;
 
@@ -44,9 +55,6 @@ int main()
     imprimirCabeceraLinea();
     printf("Entramos al proceso.\n");
 
-    sigemptyset(&set_sig_sigusr1);
-    sigaddset(&set_sig_sigusr1, SIGUSR1);
-
     if (sigaction(SIGINT, &newAction, NULL))
     {
         perror("Error en signal");
@@ -64,6 +72,8 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    sigemptyset(&set_sig_sigusr1);
+    sigaddset(&set_sig_sigusr1, SIGUSR1);
     sigprocmask(SIG_SETMASK, &set_sig_sigusr1, NULL); // Tenemos que bloquear la señal antes de hacer el fork() si queremos estar 100% seguros de que va a estar bloqueada cuando el hijo se la mande al padre. Podemos hacerlo, porque en los hijos no vamos a recibir ninguna SIGUSR1
     imprimirCabeceraLinea();
     printf("Se ha bloqueado " ANSI_COLOR_MAGENTA "SIGUSR1" ANSI_COLOR_RESET ".\n");
@@ -105,12 +115,11 @@ int main()
         { // Hijo 2
             imprimirCabeceraLinea();
             printf("Entramos al proceso.\n");
-            if (kill(getppid(), SIGINT))
+            if (kill(getppid(), SIGINT)) // Mandamos SIGINT al padre, va a ser ignorada
             {
                 perror("Hubo un error en kill()");
                 exit(EXIT_FAILURE);
             }
-            sleep(1);
             imprimirCabeceraLinea();
             printf("He enviado al padre " ANSI_COLOR_MAGENTA "SIGINT" ANSI_COLOR_RESET ".\n");
         }
@@ -120,7 +129,7 @@ int main()
 
             // Nos ha llegado una señal, como tenemos SIGUSR1 bloqueada no puede ser ella. Comprobamos que está bloqueada:
             sigpending(&sig_pend);
-            if (sigismember(&sig_pend, SIGUSR1))
+            if (sigismember(&sig_pend, SIGUSR1)) // Está SIGUSR1 en el set de las señales pendientes?
             {
                 imprimirCabeceraLinea();
                 printf("La señal " ANSI_COLOR_MAGENTA "SIGUSR1" ANSI_COLOR_RESET " está pendiente. Vamos a desbloquearla.\n" ANSI_COLOR_RESET); // Esto es lo que debería ocurrir
@@ -129,7 +138,7 @@ int main()
             else
             {
                 imprimirCabeceraLinea();
-                printf(ANSI_COLOR_RED "La señal SIGUSR1 no está pendiente.\n" ANSI_COLOR_RESET); // Esto no debería ocurrir si se deja que el programa siga su flujo habitual, pero podría suceder si
+                printf(ANSI_COLOR_RED "La señal SIGUSR1 no está pendiente.\n" ANSI_COLOR_RESET); // Esto no debería ocurrir si se deja que el programa siga su flujo habitual, pero podría llegar a suceder por factores externos
             }
             waitpid(pid1, &stat_loc, 0);
             if (WIFEXITED(stat_loc))

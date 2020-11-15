@@ -12,6 +12,17 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+/*
+ _______ .__   __. .___________..______       _______   _______      ___      .______    __       _______     __  
+|   ____||  \ |  | |           ||   _  \     |   ____| /  _____|    /   \     |   _  \  |  |     |   ____|   /_ | 
+|  |__   |   \|  | `---|  |----`|  |_)  |    |  |__   |  |  __     /  ^  \    |  |_)  | |  |     |  |__       | | 
+|   __|  |  . `  |     |  |     |      /     |   __|  |  | |_ |   /  /_\  \   |   _  <  |  |     |   __|      | | 
+|  |____ |  |\   |     |  |     |  |\  \----.|  |____ |  |__| |  /  _____  \  |  |_)  | |  `----.|  |____     | | 
+|_______||__| \__|     |__|     | _| `._____||_______| \______| /__/     \__\ |______/  |_______||_______|    |_| 
+                                                                                                                  
+Aldán Creo Mariño, SOI 2020/21
+*/
+
 int contador_sigint = 0; // Esta variable es el contador global del cuántas veces hemos recibido SIGINT. Tiene que ser global, porque no hay conexión entre el main y el gestor_sigint
 
 static void gestor_sigint(int signal); // La función que gestiona las interrupciones
