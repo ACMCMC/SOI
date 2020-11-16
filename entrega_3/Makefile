@@ -2,7 +2,7 @@ FILES := entregable_1.c entregable_2.c entregable_3.c
 OBJS := $(FILES:.c=.o)
 OUTPUTS := $(FILES:.c=.out)
 
-ARGS := -Wall -Wextra -pedantic
+ARGS := -Wall -Wextra -pedantic -lm
 
 all: $(OUTPUTS)
 
