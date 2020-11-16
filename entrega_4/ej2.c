@@ -5,7 +5,7 @@
 
 // Ver información de los hilos con ps -M
 
-void* esperar(void* flagEsperar) {
+void* calcular(void* flagEsperar) {
     while (*((char*)flagEsperar)) {};
 }
 
@@ -32,8 +32,8 @@ int main() {
 
     printf("Soy el padre, mi PID es %d\n", getpid());
 
-    pthread_create(&id1, NULL, esperar, (void*) &flagEsperar);
-    pthread_create(&id2, NULL, esperar, (void*) &flagEsperar);
+    pthread_create(&id1, NULL, calcular, (void*) &flagEsperar);
+    pthread_create(&id2, NULL, calcular, (void*) &flagEsperar);
     pthread_create(&id3, NULL, crear_hijo, NULL);
 
     pthread_join(id3, NULL);

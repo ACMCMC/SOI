@@ -5,7 +5,7 @@
 
 // Ver información de los hilos con ps -M
 
-void* esperar(void* flagEsperar) {
+void* calcular(void* flagEsperar) {
     while (*((char*)flagEsperar)) {};
 }
 
@@ -16,9 +16,9 @@ int main() {
 
     printf("Mi PID es %d\n", getpid());
 
-    pthread_create(&id1, NULL, esperar, (void*) &flagEsperar);
-    pthread_create(&id2, NULL, esperar, (void*) &flagEsperar);
-    pthread_create(&id3, NULL, esperar, (void*) &flagEsperar);
+    pthread_create(&id1, NULL, calcular, (void*) &flagEsperar);
+    pthread_create(&id2, NULL, calcular, (void*) &flagEsperar);
+    pthread_create(&id3, NULL, calcular, (void*) &flagEsperar);
 
     sleep(5); // En sistemas con gestión de procesos a nivel usuario, esto provocaría un syscall (interrupción) que dormiría todo el proceso. En sistemas UNIX no pasa porque los gestiona el SO
 
