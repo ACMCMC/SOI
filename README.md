@@ -1,2 +1,5 @@
 # SOI
-Sistemas Operativos I, ETSE (USC)
+## Sistemas Operativos I, ETSE (USC)
+
+---
+@acmcmc acmc.codes
