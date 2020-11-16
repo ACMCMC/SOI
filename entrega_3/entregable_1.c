@@ -34,31 +34,31 @@ int main()
         perror("Error al asignar la señal. Abortando.");
         exit(EXIT_FAILURE);
     }
-    for(;;);
+    for(;;); // Bucle infinito
 }
 
 static void gestor_sigint(int signal_id)
 {
-    char opcion;
-    if (contador_sigint >= 4)
+    char opcion; // Para guardar la opción
+    if (contador_sigint >= 4) // Si ya hemos recibido SIGINT 4 veces
     {
         printf("Deseas volver a la gestión por defecto de SIGINT? (" ANSI_COLOR_GREEN "s" ANSI_COLOR_RESET "/" ANSI_COLOR_RED "N" ANSI_COLOR_RESET "): ");
         scanf(" %c", &opcion);
         if (opcion == 's' || opcion == 'S')
         {
-            if (signal(SIGINT, SIG_DFL) == SIG_ERR)
+            if (signal(SIGINT, SIG_DFL) == SIG_ERR) // Volvemos a la gestióin por defecto de SIGINT (interrumpimos el proceso)
             {
                 perror("Error al asignar la señal. Abortando.");
                 exit(EXIT_FAILURE);
             }
             printf(ANSI_COLOR_GREEN "Se ha vuelto a la gestión por defecto.\n" ANSI_COLOR_RESET);
         } else { // Cualquier opción que no sea S
-            printf("Elegido: " ANSI_COLOR_RED "%c" ANSI_COLOR_RESET ". Se mantiene el comportamiento actual.\n", opcion);
+            printf("Elegido: " ANSI_COLOR_RED "%c" ANSI_COLOR_RESET ". Se mantiene el comportamiento actual.\n", opcion); // No volvemos a la gestión por defecto de SIGINT, imprimimos el carácter de la opción seleccionada
         }
     }
     else
     {
-        psignal(signal_id, "Se ha recibido la señal");
+        psignal(signal_id, "Se ha recibido la señal"); // Las 4 primeras veces, imprimimos la señal que hemos recibido
         contador_sigint++;
     }
 }
