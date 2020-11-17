@@ -22,6 +22,19 @@ int realizar_calculo(int i);
 
 int d;
 
+/*
+ __    __   __   __        ______        _______.
+|  |  |  | |  | |  |      /  __  \      /       |
+|  |__|  | |  | |  |     |  |  |  |    |   (----`
+|   __   | |  | |  |     |  |  |  |     \   \    
+|  |  |  | |  | |  `----.|  `--'  | .----)   |   
+|__|  |__| |__| |_______| \______/  |_______/    
+                                                 
+
+Aldán Creo Mariño, SOI 2020/21
+
+*/
+
 int main()
 {
     int i, sumatorio_hilos, sumatorio_secuencial;
