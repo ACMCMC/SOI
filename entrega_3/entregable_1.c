@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+// Códigos de color para formatear la salida en consola
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
