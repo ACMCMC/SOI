@@ -20,7 +20,7 @@
 // Ver información de los hilos con ps -M
 
 void *realizar_calculos(void *arg_proc);
-int realizar_calculo(int i);
+double realizar_calculo(int i);
 
 int d;
 
@@ -40,10 +40,10 @@ Aldán Creo Mariño, SOI 2020/21
 int main()
 {
     int i; // Variable auxiliar
-    int sumatorio_hilos, sumatorio_secuencial; // Resultados de los sumatorios, usando hilos, y en un solo hilo
+    double sumatorio_hilos, sumatorio_secuencial; // Resultados de los sumatorios, usando hilos, y en un solo hilo
     void *ret_proc; // Para recibir el valor de retorno de un hilo
     pthread_t threads[NUM_HILOS]; // Los identificadores de los hilos que vamos a crear
-    int res_parciales[NUM_HILOS]; // Los resultados parciales de cada hilo
+    double res_parciales[NUM_HILOS]; // Los resultados parciales de cada hilo
     struct timespec tinicio, tfin; // Para medir tiempos
 
     printf("Introduzca el valor de " ANSI_COLOR_YELLOW "d" ANSI_COLOR_RESET ": "); // Obtenemos el valor de d
@@ -59,52 +59,52 @@ int main()
     for (i = 0; i < NUM_HILOS; i++) // Esperamos a que acaben todos los hilos y guardamos sus resultados
     {
         pthread_join(threads[i], &ret_proc);
-        res_parciales[i] = (int)ret_proc;
+        res_parciales[i] = (double)(intptr_t)ret_proc;
     }
 
     clock_gettime(CLOCK_MONOTONIC, &tfin); // Obtenemos el tiempo de fin para el cálculo multihilo
 
-    sumatorio_hilos = 0;
+    sumatorio_hilos = 0.0;
     for (i = 0; i < NUM_HILOS; i++) // Sumamos los resultados parciales para obtener el resultado global
     {
         sumatorio_hilos += res_parciales[i];
     }
 
-    printf("Valor del cálculo con hilos: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " ( %.6f segundos )\n", sumatorio_hilos, ((double)tfin.tv_sec + 1.0e-9 * tfin.tv_nsec) - ((double)tinicio.tv_sec + 1.0e-9 * tinicio.tv_nsec)); // Lo imprimimos
+    printf("Valor del cálculo con hilos: " ANSI_COLOR_GREEN "%lf" ANSI_COLOR_RESET " ( %.6f segundos )\n", sumatorio_hilos, ((double)tfin.tv_sec + 1.0e-9 * tfin.tv_nsec) - ((double)tinicio.tv_sec + 1.0e-9 * tinicio.tv_nsec)); // Lo imprimimos
 
-    sumatorio_secuencial = 0;
+    sumatorio_secuencial = 0.0;
     clock_gettime(CLOCK_MONOTONIC, &tinicio); // Obtenemos el tiempo de inicio para el cálculo secuencial
 
-    for (i = 0; i < d; i++)
+    for (i = 0; i <= d; i++)
     {
         sumatorio_secuencial += realizar_calculo(i); // Realizamos todos los cálculos de forma secuencial
     }
 
     clock_gettime(CLOCK_MONOTONIC, &tfin); // Obtenemos el tiempo de fin para el cálculo secuencial
 
-    printf("Valor del cálculo secuencial: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " ( %.6f segundos )\n", sumatorio_secuencial, ((double)tfin.tv_sec + 1.0e-9 * tfin.tv_nsec) - ((double)tinicio.tv_sec + 1.0e-9 * tinicio.tv_nsec));
-    printf("Diferencia de los resultados: " ANSI_COLOR_RED "%d\n" ANSI_COLOR_RESET, abs(sumatorio_secuencial - sumatorio_hilos));
+    printf("Valor del cálculo secuencial: " ANSI_COLOR_GREEN "%lf" ANSI_COLOR_RESET " ( %.6f segundos )\n", sumatorio_secuencial, ((double)tfin.tv_sec + 1.0e-9 * tfin.tv_nsec) - ((double)tinicio.tv_sec + 1.0e-9 * tinicio.tv_nsec));
+    printf("Diferencia de los resultados: " ANSI_COLOR_RED "%lf\n" ANSI_COLOR_RESET, fabs(sumatorio_secuencial - sumatorio_hilos));
 }
 
 void *realizar_calculos(void *arg_proc)
 {
     int i; // Variable auxiliar
     int j; // El número de este hilo
-    int sumatorio_parcial; // El valor que devolverá este hilo
+    double sumatorio_parcial; // El valor que devolverá este hilo
     j = (int)arg_proc;
-    sumatorio_parcial = 0;
-    for (i = j; i < d; i += NUM_HILOS) // Vamos realizando los cálculos en la secuencia (j + NUM_HILOS*i): Si tenemos 3 hilos y este es el 2, sería 1, 4, 7, ...
+    sumatorio_parcial = 0.0;
+    for (i = j; i <= d; i += NUM_HILOS) // Vamos realizando los cálculos en la secuencia (j + NUM_HILOS*i): Si tenemos 3 hilos y este es el 2, sería 1, 4, 7, ...
     {
         sumatorio_parcial += realizar_calculo(i);
     }
     return (void *)(intptr_t)(sumatorio_parcial); // Devolvemos el resultado, como debe ser casteado a forma de puntero trataremos el valor del puntero como el valor de retorno
 }
 
-int realizar_calculo(int i) // Realizamos el cálculo para un valor x
+double realizar_calculo(int i) // Realizamos el cálculo para un valor x
 {
-    int x; // Dado el índice de este cálculo, obtendremos aquí el valor de x para la fórmula
-    int res; // El resultado
-    x = (i * 1000) / d - 500; // Calculamos x
-    res = -1 * (x * sin(sqrt(abs(x)))); // Aplicamos la fórmula
+    double x; // Dado el índice de este cálculo, obtendremos aquí el valor de x para la fórmula
+    double res; // El resultado
+    x = (((double) i) * 1000.0) / ((double) d) - 500.0; // Calculamos x
+    res = -1.0 * (x * sin(sqrt(fabs(x)))); // Aplicamos la fórmula
     return res;
 }
