@@ -39,12 +39,12 @@ Aldán Creo Mariño, SOI 2020/21
 
 int main()
 {
-    int i; // Variable auxiliar
+    int i;                                        // Variable auxiliar
     double sumatorio_hilos, sumatorio_secuencial; // Resultados de los sumatorios, usando hilos, y en un solo hilo
-    void *ret_proc; // Para recibir el valor de retorno de un hilo
-    pthread_t threads[NUM_HILOS]; // Los identificadores de los hilos que vamos a crear
-    double res_parciales[NUM_HILOS]; // Los resultados parciales de cada hilo
-    struct timespec tinicio, tfin; // Para medir tiempos
+    void *ret_proc;                               // Para recibir el valor de retorno de un hilo
+    pthread_t threads[NUM_HILOS];                 // Los identificadores de los hilos que vamos a crear
+    double res_parciales[NUM_HILOS];              // Los resultados parciales de cada hilo
+    struct timespec tinicio, tfin;                // Para medir tiempos
 
     printf("Introduzca el valor de " ANSI_COLOR_YELLOW "d" ANSI_COLOR_RESET ": "); // Obtenemos el valor de d
     scanf(" %d", &d);
@@ -88,8 +88,8 @@ int main()
 
 void *realizar_calculos(void *arg_proc)
 {
-    int i; // Variable auxiliar
-    int j; // El número de este hilo
+    int i;                    // Variable auxiliar
+    int j;                    // El número de este hilo
     double sumatorio_parcial; // El valor que devolverá este hilo
     j = (int)arg_proc;
     sumatorio_parcial = 0.0;
@@ -102,9 +102,9 @@ void *realizar_calculos(void *arg_proc)
 
 double realizar_calculo(int i) // Realizamos el cálculo para un valor x
 {
-    double x; // Dado el índice de este cálculo, obtendremos aquí el valor de x para la fórmula
-    double res; // El resultado
-    x = (((double) i) * 1000.0) / ((double) d) - 500.0; // Calculamos x
-    res = -1.0 * (x * sin(sqrt(fabs(x)))); // Aplicamos la fórmula
+    double x;                                         // Dado el índice de este cálculo, obtendremos aquí el valor de x para la fórmula
+    double res;                                       // El resultado
+    x = (((double)i) * 1000.0) / ((double)d) - 500.0; // Calculamos x
+    res = -1.0 * (x * sin(sqrt(fabs(x))));            // Aplicamos la fórmula
     return res;
 }
