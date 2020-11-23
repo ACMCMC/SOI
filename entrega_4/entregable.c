@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sched.h>
+#include <time.h>
 #include <math.h>
 
 // Códigos de color para formatear la salida en consola
@@ -14,7 +15,7 @@
 #define ANSI_COLOR_RESET "\x1b[0m"
 
 #define NUM_CORES 4
-#define NUM_HILOS 2
+#define NUM_HILOS 4
 
 // Ver información de los hilos con ps -M
 
@@ -43,9 +44,12 @@ int main()
     void *ret_proc; // Para recibir el valor de retorno de un hilo
     pthread_t threads[NUM_HILOS]; // Los identificadores de los hilos que vamos a crear
     int res_parciales[NUM_HILOS]; // Los resultados parciales de cada hilo
+    struct timespec tinicio, tfin; // Para medir tiempos
 
     printf("Introduzca el valor de " ANSI_COLOR_YELLOW "d" ANSI_COLOR_RESET ": "); // Obtenemos el valor de d
     scanf(" %d", &d);
+
+    clock_gettime(CLOCK_MONOTONIC, &tinicio); // Obtenemos el tiempo de inicio para el cálculo multihilo
 
     for (i = 0; i < NUM_HILOS; i++) // Creamos NUM_HILOS para hacer los cálculos en paralelo
     {
@@ -58,22 +62,27 @@ int main()
         res_parciales[i] = (int)ret_proc;
     }
 
+    clock_gettime(CLOCK_MONOTONIC, &tfin); // Obtenemos el tiempo de fin para el cálculo multihilo
+
     sumatorio_hilos = 0;
     for (i = 0; i < NUM_HILOS; i++) // Sumamos los resultados parciales para obtener el resultado global
     {
         sumatorio_hilos += res_parciales[i];
     }
 
-    printf("Valor del cálculo con hilos: " ANSI_COLOR_GREEN "%d\n" ANSI_COLOR_RESET, sumatorio_hilos); // Lo imprimimos
-
+    printf("Valor del cálculo con hilos: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " ( %.6f segundos )\n", sumatorio_hilos, ((double)tfin.tv_sec + 1.0e-9 * tfin.tv_nsec) - ((double)tinicio.tv_sec + 1.0e-9 * tinicio.tv_nsec)); // Lo imprimimos
 
     sumatorio_secuencial = 0;
+    clock_gettime(CLOCK_MONOTONIC, &tinicio); // Obtenemos el tiempo de inicio para el cálculo secuencial
+
     for (i = 0; i < d; i++)
     {
         sumatorio_secuencial += realizar_calculo(i); // Realizamos todos los cálculos de forma secuencial
     }
 
-    printf("Valor del cálculo secuencial: " ANSI_COLOR_GREEN "%d\n" ANSI_COLOR_RESET, sumatorio_secuencial);
+    clock_gettime(CLOCK_MONOTONIC, &tfin); // Obtenemos el tiempo de fin para el cálculo secuencial
+
+    printf("Valor del cálculo secuencial: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " ( %.6f segundos )\n", sumatorio_secuencial, ((double)tfin.tv_sec + 1.0e-9 * tfin.tv_nsec) - ((double)tinicio.tv_sec + 1.0e-9 * tinicio.tv_nsec));
     printf("Diferencia de los resultados: " ANSI_COLOR_RED "%d\n" ANSI_COLOR_RESET, abs(sumatorio_secuencial - sumatorio_hilos));
 }
 
