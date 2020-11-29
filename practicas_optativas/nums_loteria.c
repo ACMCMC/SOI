@@ -117,18 +117,27 @@ static void gestor_sigusr1()
 
 void *hilo_mostrar_sumas()
 {
+    while (1) {
+        sleep(7);
+        printf("\nValor calculado hasta ahora: %lf\n\n", suma_doble_precision);
+    }
 }
 
 void *hilo_contabilidad()
 {
     pthread_t hilo;
+    void* retorno_hilo;
+    unsigned int res_hilo;
     while (1)
     {
         if (!es_vacia_cola_procesos())
         {
             hilo = primero_cola_procesos();
             printf("Waiting to join thread: %p\n", hilo);
-            pthread_join(hilo, NULL);
+            pthread_join(hilo, &retorno_hilo);
+            res_hilo = *((unsigned int*) retorno_hilo);
+            suma_doble_precision += (double) res_hilo;
+            free(retorno_hilo);
             printf("Joined thread: %p\n", hilo);
         } else {
             sched_yield();
@@ -138,15 +147,16 @@ void *hilo_contabilidad()
 
 void *hilo_trabajador(void *term)
 {
-    unsigned int num_loteria;
+    unsigned int* num_loteria = malloc(sizeof(unsigned int));
     int terminacion = (int)(uintptr_t)term;
     do
     {
-        num_loteria = gen_num_loteria();
-    } while ((num_loteria % 10) != terminacion || num_ya_generado(num_loteria));
-    anadir_lista(num_loteria);
+        *num_loteria = gen_num_loteria();
+    } while ((*num_loteria % 10) != terminacion || num_ya_generado(*num_loteria));
+    anadir_lista(*num_loteria);
     sleep(8);
-    printf("Numero generado: %d\n", num_loteria);
+    printf("Numero generado: %d\n", *num_loteria);
+    return num_loteria;
 }
 
 int main()
