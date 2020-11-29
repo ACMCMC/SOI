@@ -144,13 +144,13 @@ void *hilo_contabilidad()
     unsigned int res_hilo;
     while (1)
     {
-        if (!es_vacia_cola_hilos())
+        if (!es_vacia_cola_hilos()) // Si hay hilos trabajadores ejecutándose (están en la cola)...
         {
             hilo = primero_cola_hilos();
-            pthread_join(hilo, &retorno_hilo);
+            pthread_join(hilo, &retorno_hilo); // Espero a que acaben
             res_hilo = *((unsigned int *)retorno_hilo);
-            suma_doble_precision += (double)res_hilo;
-            free(retorno_hilo);
+            suma_doble_precision += (double)res_hilo; // Sumo su valor de retorno
+            free(retorno_hilo);                       // Libero el valor de retorno del proceso, ya que hizo un malloc para devolvernos ese valor, pero el free de esa memoria nos corresponde a nosotros
         }
         else
         {
