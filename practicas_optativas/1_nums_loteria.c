@@ -6,6 +6,18 @@
 #include <math.h>
 #include <unistd.h>
 
+/*
+.__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___      
+|  \ |  | |  |  |  | |   \/   |     /       |   |  |      /  __  \  |           ||   ____||   _  \     |  |     /   \     
+|   \|  | |  |  |  | |  \  /  |    |   (----`   |  |     |  |  |  | `---|  |----`|  |__   |  |_)  |    |  |    /  ^  \    
+|  . `  | |  |  |  | |  |\/|  |     \   \       |  |     |  |  |  |     |  |     |   __|  |      /     |  |   /  /_\  \   
+|  |\   | |  `--'  | |  |  |  | .----)   |      |  `----.|  `--'  |     |  |     |  |____ |  |\  \----.|  |  /  _____  \  
+|__| \__|  \______/  |__|  |__| |_______/       |_______| \______/      |__|     |_______|| _| `._____||__| /__/     \__\ 
+                                                                                                                          
+
+Aldán Creo Mariño, SOI 2020/21
+*/
+
 double suma_doble_precision = 0; // El valor actual de la suma en doble precisión, lo declaro como variable global porque la comparten los hilos de contabilidad y de mostrar el valor de la suma; habría medios alternativos para hacerlo como pasarle a los hilos referencia a la misma posición de memoria, que guarde el resultado, pero me parecía excesivamente complicado para hacer algo tan sencillo como esto. No necesitamos protección de memoria entre hilos, porque suponemos que van a colaborar entre ellos, ya que están bajo nuestro control
 
 // Creamos un tipo de dato que es una lista enlazada, para guardar los números de lotería que hemos creado
