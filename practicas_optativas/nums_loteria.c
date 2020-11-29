@@ -6,31 +6,34 @@
 #include <math.h>
 #include <unistd.h>
 
-double suma_doble_precision = 0;
+double suma_doble_precision = 0; // El valor actual de la suma en doble precisión, lo declaro como variable global porque la comparten los hilos de contabilidad y de mostrar el valor de la suma; habría medios alternativos para hacerlo como pasarle a los hilos referencia a la misma posición de memoria, que guarde el resultado, pero me parecía excesivamente complicado para hacer algo tan sencillo como esto. No necesitamos protección de memoria entre hilos, porque suponemos que van a colaborar entre ellos, ya que están bajo nuestro control
 
+// Creamos un tipo de dato que es una lista enlazada, para guardar los números de lotería que hemos creado
 typedef struct num_lista
 {
-    unsigned int num;
-    struct num_lista *sig;
+    unsigned int num;      // Cada elemento de la lista guarda un número, y
+    struct num_lista *sig; // una referencia al elemento siguiente
 } num_lista;
 
-num_lista *lista_enlazada_nums;
+num_lista *primero_lista_enlazada_nums; // Una referencia global al principio de la lista, ya que necesitamos saber dónde empezar a leerla. El motivo por el que es global es el mismo que para suma_doble_precision.
 
-typedef struct elem_cola_procesos
+// También declaramos una cola para los hilos trabajadores; iremos introduciéndolos en ella y haciendo phtread_join por orden
+typedef struct elem_cola_hilos
 {
-    pthread_t elem;
-    struct elem_cola_procesos *sig;
-} elem_cola_procesos;
+    pthread_t elem;              // El identificador de proceso
+    struct elem_cola_hilos *sig; // El siguiente de la cola
+} elem_cola_hilos;
 
-typedef struct cola_procesos {
-    elem_cola_procesos* principio;
-    elem_cola_procesos* final;
+typedef struct cola_hilos // Lo usamos para encapsular la cola, nos permite insertar más fácilmente por el final y retirar por el principio. Además nos quedamos con el número de elementos de la cola, aunque podríamos calcularlo
+{
+    elem_cola_hilos *principio;
+    elem_cola_hilos *final;
     int num_elems;
-} cola_procesos;
+} cola_hilos;
 
-cola_procesos cola_proc;
+cola_hilos cola_threads; // Una variable global también para la cola de hilos trabajadores. El motivo por el que es global es el mismo que para suma_doble_precision.
 
-//Función privada que genera un número aleatorio entre inf y sup
+//Función privada que genera un número aleatorio entre 00000 y 99999
 unsigned int gen_num_loteria()
 {
     return (rand() % (100000));
@@ -40,68 +43,71 @@ unsigned int gen_num_loteria()
 int num_ya_generado(unsigned int num)
 {
     num_lista elem_lista;
-    elem_lista = *lista_enlazada_nums;
-    while (elem_lista.sig != NULL)
+    elem_lista = *primero_lista_enlazada_nums; // Nos quedamos con el primer elemento de la lista para empezar
+    while (elem_lista.sig != NULL)             // Mientras queden elementos en la lista...
     {
-        if (elem_lista.num == num)
+        if (elem_lista.num == num) // Si el número coincide, devolvemos TRUE
         {
-            printf("Ya generado: %d\n", elem_lista.num);
             return 1;
         }
-        elem_lista = *(elem_lista.sig);
+        elem_lista = *(elem_lista.sig); // Miramos el siguiente elemento
     }
-    return 0;
+    return 0; // No se ha encontrado ese número
 }
 
 // Añade un número a la lista de números generados
 void anadir_lista(unsigned int num)
 {
-    num_lista *elem_lista = (num_lista *)malloc(sizeof(num_lista));
-    elem_lista->num = num;
-    elem_lista->sig = lista_enlazada_nums;
-    lista_enlazada_nums = elem_lista;
+    num_lista *elem_lista = (num_lista *)malloc(sizeof(num_lista)); // Guardamos memoria para un nuevo elemento de la lista
+    elem_lista->num = num;                                          // Establecemos el valor de este elemento
+    elem_lista->sig = primero_lista_enlazada_nums;                  // Insertamos el elemento al principio, así que el siguiente elemento de la lista será el que era el primero
+    primero_lista_enlazada_nums = elem_lista;                       // El primero de la lista es este elemento
 }
 
-// Devuelve TRUE si la cola de procesos está vacía
-int es_vacia_cola_procesos()
+// Devuelve TRUE si la cola de hilos está vacía
+int es_vacia_cola_hilos()
 {
-    return cola_proc.principio == NULL;
+    return cola_threads.principio == NULL; // Si el prinncipio de la cola es NULL, entonces la cola está vacía
 }
 
-// Añade un proceso a la cola de procesos
-void anadir_cola_procesos(pthread_t proc)
+// Añade un hilo a la cola de hilos
+void anadir_cola_hilos(pthread_t thread)
 {
-    // Vamos a crear un nuevo elemento en la cola de procesos.
+    // Vamos a crear un nuevo elemento en la cola de hilos.
 
-    elem_cola_procesos* elem = (elem_cola_procesos*) malloc(sizeof(elem_cola_procesos)); // Reservamos memoria para un nuevo elemento de la cola
-    elem->sig = NULL; // El elemento lo vamos a meter al final, así que el siguiente a este no existe
-    elem->elem = proc; // El valor del elemento que vamos a meter en la cola será el identificador de proceso que le pasamos a esta función
-    if (!es_vacia_cola_procesos()) {
-        cola_proc.final->sig = elem;
-    } else { // Si la cola es vacía, entonces el primero elemento será este
-        cola_proc.principio = elem;
+    elem_cola_hilos *elem = (elem_cola_hilos *)malloc(sizeof(elem_cola_hilos)); // Reservamos memoria para un nuevo elemento de la cola
+    elem->sig = NULL;                                                           // El elemento lo vamos a meter al final, así que el siguiente a este no existe
+    elem->elem = thread;                                                        // El valor del elemento que vamos a meter en la cola será el identificador de hilo que le pasamos a esta función
+    if (!es_vacia_cola_hilos())
+    {
+        cola_threads.final->sig = elem;
     }
-    cola_proc.final = elem; // El final de la cola será este elemento
-    cola_proc.num_elems++; // Incrementamos el contador de elementos de la cola
+    else
+    { // Si la cola es vacía, entonces el primero elemento será este
+        cola_threads.principio = elem;
+    }
+    cola_threads.final = elem; // El final de la cola será este elemento
+    cola_threads.num_elems++;  // Incrementamos el contador de elementos de la cola
 }
 
-// Devuelve el primer elemento de la cola de procesos, y lo elimina de la cola
-pthread_t primero_cola_procesos()
+// Devuelve el primer elemento de la cola de hilos, y lo elimina de la cola
+pthread_t primero_cola_hilos()
 {
-    pthread_t proc;
-    elem_cola_procesos* sig_elem;
-    proc = cola_proc.principio->elem;
-    sig_elem = cola_proc.principio->sig;
-    free(cola_proc.principio);
-    cola_proc.principio = sig_elem;
-    cola_proc.num_elems--;
-    return proc;
+    pthread_t thread;
+    elem_cola_hilos *sig_elem;              // Necesitamos una referencia al siguente elemento del primero de la cola, para borrar al primero y apuntar al siguiente
+    thread = cola_threads.principio->elem;  // Obtenemos el valor del primero de la cola
+    sig_elem = cola_threads.principio->sig; // Guardamos la referencia al siguiente
+    free(cola_threads.principio);           // Liberamos la memoria del primero
+    cola_threads.principio = sig_elem;      // Ahora el primero es el siguiente elemento
+    cola_threads.num_elems--;               // Hay un elemento menos en la cola
+    return thread;                          // Devolvemos el valor que estaba almacenado en el primer elemento
 }
 
+// Si recibimos SIGUSR1, entonces acabamos este proceso
 static void gestor_sigusr1()
 {
-    // Liberamos la lista enlazada antes de salir
-    num_lista *elemsig = lista_enlazada_nums;
+    // Liberamos la lista enlazada antes de salir, aunque realmente tampoco haría falta porque como se va a acabar el proceso toda nuestra memoria se va a volver libre al momento.
+    num_lista *elemsig = primero_lista_enlazada_nums;
     num_lista *elem;
     while (elemsig != NULL)
     {
@@ -110,68 +116,78 @@ static void gestor_sigusr1()
         free(elem);
     }
 
+    while (!es_vacia_cola_hilos())
+    { // Vacío también la cola de hilos, de nuevo no es tan importante hacerlo pero es una buena práctica. Eso sí, no espero a que acaben.
+        primero_cola_hilos();
+    }
+
     printf("Salgo.\n");
 
-    exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS); // Acabamos el proceso
 }
 
+// Muestra cada 7 segundos el valor de suma_doble_precision
 void *hilo_mostrar_sumas()
 {
-    while (1) {
+    while (1)
+    {
         sleep(7);
         printf("\nValor calculado hasta ahora: %lf\n\n", suma_doble_precision);
     }
 }
 
+// Si hay hilos trabajadores ejecutándose, espera a que acaben y lee su valor de retorno (el número de lotería elegido) para sumarlo a suma_doble_precision
 void *hilo_contabilidad()
 {
     pthread_t hilo;
-    void* retorno_hilo;
+    void *retorno_hilo;
     unsigned int res_hilo;
     while (1)
     {
-        if (!es_vacia_cola_procesos())
+        if (!es_vacia_cola_hilos())
         {
-            hilo = primero_cola_procesos();
+            hilo = primero_cola_hilos();
             printf("Waiting to join thread: %p\n", hilo);
             pthread_join(hilo, &retorno_hilo);
-            res_hilo = *((unsigned int*) retorno_hilo);
-            suma_doble_precision += (double) res_hilo;
+            res_hilo = *((unsigned int *)retorno_hilo);
+            suma_doble_precision += (double)res_hilo;
             free(retorno_hilo);
             printf("Joined thread: %p\n", hilo);
-        } else {
-            sched_yield();
+        }
+        else
+        {
+            sched_yield(); // Cedemos el procesador a otros hilos
         }
     }
 }
 
 void *hilo_trabajador(void *term)
 {
-    unsigned int* num_loteria = malloc(sizeof(unsigned int));
-    int terminacion = (int)(uintptr_t)term;
+    unsigned int *num_loteria = malloc(sizeof(unsigned int)); // num_loteria usa memoria dinámica, porque vamos a devolver un puntero al número, y entonces necesitamos que siga existiendo en memoria tras esta función
+    int terminacion = (int)(uintptr_t)term;                   // Obtenemos la terminación, que se nos había pasado como argumento
     do
     {
-        *num_loteria = gen_num_loteria();
-    } while ((*num_loteria % 10) != terminacion || num_ya_generado(*num_loteria));
-    anadir_lista(*num_loteria);
-    sleep(8);
-    printf("Numero generado: %d\n", *num_loteria);
+        *num_loteria = gen_num_loteria();                                          // Generamos nuevos números de lotería...
+    } while ((*num_loteria % 10) != terminacion || num_ya_generado(*num_loteria)); // Mientras no terminen en el número que queremos o ya hayan sido creados antes
+    anadir_lista(*num_loteria);                                                    // Añadimos el número a la lista de números de lotería que ya han salido
+    sleep(8);                                                                      // Esperamos 8 segundos, no hace falta comprobar esta llamada al sistema porque siempre devuelve -1
+    printf("Numero generado: %d\n", *num_loteria);                                 // Imprimimos el número, info para el usuario solamente
     return num_loteria;
 }
 
 int main()
 {
-    pthread_t hilo_cont;
-    pthread_t hilo_sumas;
-    pthread_t hilo;
-    int terminacion;
+    pthread_t hilo_cont;  // El identificador del hilo que se encarga de ir recibiendo los valores de retorno de los hilos del cálculo y va sumando sus valores
+    pthread_t hilo_sumas; // Muestra el valor actual cada 7 segundos
+    pthread_t hilo;       // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
+    int terminacion;      // La terminación que hemos elegido
 
-    cola_proc.num_elems = 0;
+    cola_threads.num_elems = 0; // Inicializamos el número de elementos de la cola a 0. Podríamos hacerlo con una función auxiliar, pero me parece complicar innecesariamente el código
 
-    // Inicializamos la lista
-    lista_enlazada_nums = (num_lista *)malloc(sizeof(num_lista));
-    lista_enlazada_nums->sig = NULL;
-    lista_enlazada_nums->num = -1;
+    // Inicializamos la lista de números, al principio solo contendrá el -1, que indica que no hay números
+    primero_lista_enlazada_nums = (num_lista *)malloc(sizeof(num_lista)); // Reservamos espacio para el primer elemento de la lista
+    primero_lista_enlazada_nums->sig = NULL;                              // No hay un elemento siguiente al primero
+    primero_lista_enlazada_nums->num = -1;                                // El primero vale -1, para indicar que no tiene un valor (decisión arbitraria, podríamos implementarlo de forma más estándar con constantes y funciones auxiliares pero me parece escribir código innecesario para un programa tan sencillo)
 
     srand((unsigned int)time(NULL)); // Semilla para generar números de lotería aleatoriamente
 
@@ -184,12 +200,12 @@ int main()
         perror("Error en signal()");
     }
 
-    if (pthread_create(&hilo_cont, NULL, hilo_contabilidad, NULL))
+    if (pthread_create(&hilo_cont, NULL, hilo_contabilidad, NULL)) // Creamos el hilo de contabilidad
     {
         perror("Error creando el hilo de contabilidad");
     }
 
-    if (pthread_create(&hilo_sumas, NULL, hilo_mostrar_sumas, NULL))
+    if (pthread_create(&hilo_sumas, NULL, hilo_mostrar_sumas, NULL)) // El hilo que va mostrando el valor de las sumas cada 7 segundos
     {
         perror("Error creando el hilo de mostrar sumas");
     }
@@ -198,13 +214,20 @@ int main()
     {
         printf("Introduce una terminación: ");
         scanf(" %d", &terminacion);
-        if (pthread_create(&hilo, NULL, hilo_trabajador, (void *)(uintptr_t)(terminacion % 10)))
-        { // Creamos un hilo que calcule esa terminación
-            perror("Error creando el hilo");
+        if (cola_threads.num_elems < 4)
+        {                                                                                            // Solo creamos un hilo trabajador si hay menos de 4
+            if (pthread_create(&hilo, NULL, hilo_trabajador, (void *)(uintptr_t)(terminacion % 10))) // Creamos un hilo trabajador que calcule un número con esa terminación (la ponemos en módulo 10 por si acaso el usuario escribiese mal el argumento)
+            {                                                                                        // Creamos un hilo que calcule esa terminación
+                perror("Error creando el hilo");
+            }
+            else
+            {
+                anadir_cola_hilos(hilo);
+            }
         }
         else
-        {
-            anadir_cola_procesos(hilo);
+        { // Informamos al usuario de que ya hay 4 hilos
+            printf("Ya hay 4 hilos trabajando. Espera a que acabe uno antes de calcular un nuevo número.\n");
         }
     }
 }
