@@ -1,4 +1,4 @@
-FILES := nums_loteria.c
+FILES := 1_nums_loteria.c
 OBJS := $(FILES:.c=.o)
 OUTPUTS := $(FILES:.c=.out)
 
