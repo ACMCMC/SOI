@@ -147,12 +147,10 @@ void *hilo_contabilidad()
         if (!es_vacia_cola_hilos())
         {
             hilo = primero_cola_hilos();
-            printf("Waiting to join thread: %p\n", hilo);
             pthread_join(hilo, &retorno_hilo);
             res_hilo = *((unsigned int *)retorno_hilo);
             suma_doble_precision += (double)res_hilo;
             free(retorno_hilo);
-            printf("Joined thread: %p\n", hilo);
         }
         else
         {
