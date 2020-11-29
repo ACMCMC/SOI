@@ -6,14 +6,16 @@
 #include <math.h>
 #include <unistd.h>
 
+#define STACK_SIZE 65536
+
 /*
-.__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___      
-|  \ |  | |  |  |  | |   \/   |     /       |   |  |      /  __  \  |           ||   ____||   _  \     |  |     /   \     
-|   \|  | |  |  |  | |  \  /  |    |   (----`   |  |     |  |  |  | `---|  |----`|  |__   |  |_)  |    |  |    /  ^  \    
-|  . `  | |  |  |  | |  |\/|  |     \   \       |  |     |  |  |  |     |  |     |   __|  |      /     |  |   /  /_\  \   
-|  |\   | |  `--'  | |  |  |  | .----)   |      |  `----.|  `--'  |     |  |     |  |____ |  |\  \----.|  |  /  _____  \  
-|__| \__|  \______/  |__|  |__| |_______/       |_______| \______/      |__|     |_______|| _| `._____||__| /__/     \__\ 
-                                                                                                                          
+.__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___
+|  \ |  | |  |  |  | |   \/   |     /       |   |  |      /  __  \  |           ||   ____||   _  \     |  |     /   \
+|   \|  | |  |  |  | |  \  /  |    |   (----`   |  |     |  |  |  | `---|  |----`|  |__   |  |_)  |    |  |    /  ^  \
+|  . `  | |  |  |  | |  |\/|  |     \   \       |  |     |  |  |  |     |  |     |   __|  |      /     |  |   /  /_\  \
+|  |\   | |  `--'  | |  |  |  | .----)   |      |  `----.|  `--'  |     |  |     |  |____ |  |\  \----.|  |  /  _____  \
+|__| \__|  \______/  |__|  |__| |_______/       |_______| \______/      |__|     |_______|| _| `._____||__| /__/     \__\
+
 
 Aldán Creo Mariño, SOI 2020/21
 */
@@ -32,7 +34,7 @@ num_lista *primero_lista_enlazada_nums; // Una referencia global al principio de
 // También declaramos una cola para los hilos trabajadores; iremos introduciéndolos en ella y haciendo phtread_join por orden
 typedef struct elem_cola_hilos
 {
-    pthread_t elem;              // El identificador de proceso
+    int elem;              // El identificador de proceso
     struct elem_cola_hilos *sig; // El siguiente de la cola
 } elem_cola_hilos;
 
@@ -83,7 +85,7 @@ int es_vacia_cola_hilos()
 }
 
 // Añade un hilo a la cola de hilos
-void anadir_cola_hilos(pthread_t thread)
+void anadir_cola_hilos(int thread)
 {
     // Vamos a crear un nuevo elemento en la cola de hilos.
 
@@ -103,9 +105,9 @@ void anadir_cola_hilos(pthread_t thread)
 }
 
 // Devuelve el primer elemento de la cola de hilos, y lo elimina de la cola
-pthread_t primero_cola_hilos()
+int primero_cola_hilos()
 {
-    pthread_t thread;
+    int thread;
     elem_cola_hilos *sig_elem;              // Necesitamos una referencia al siguente elemento del primero de la cola, para borrar al primero y apuntar al siguiente
     thread = cola_threads.principio->elem;  // Obtenemos el valor del primero de la cola
     sig_elem = cola_threads.principio->sig; // Guardamos la referencia al siguiente
@@ -151,7 +153,7 @@ void *hilo_mostrar_sumas()
 // Si hay hilos trabajadores ejecutándose, espera a que acaben y lee su valor de retorno (el número de lotería elegido) para sumarlo a suma_doble_precision
 void *hilo_contabilidad()
 {
-    pthread_t hilo;
+    int hilo;
     void *retorno_hilo;
     unsigned int res_hilo;
     while (1)
@@ -187,10 +189,11 @@ void *hilo_trabajador(void *term)
 
 int main()
 {
-    pthread_t hilo_cont;  // El identificador del hilo que se encarga de ir recibiendo los valores de retorno de los hilos del cálculo y va sumando sus valores
-    pthread_t hilo_sumas; // Muestra el valor actual cada 7 segundos
-    pthread_t hilo;       // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
+    int hilo_cont;  // El identificador del hilo que se encarga de ir recibiendo los valores de retorno de los hilos del cálculo y va sumando sus valores
+    int hilo_sumas; // Muestra el valor actual cada 7 segundos
+    int hilo;       // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
     int terminacion;      // La terminación que hemos elegido
+  void* stack; // Puntero al stack que reservaremos para cada hilo
 
     cola_threads.num_elems = 0; // Inicializamos el número de elementos de la cola a 0. Podríamos hacerlo con una función auxiliar, pero me parece complicar innecesariamente el código
 
@@ -210,12 +213,15 @@ int main()
         perror("Error en signal()");
     }
 
-    if (pthread_create(&hilo_cont, NULL, hilo_contabilidad, NULL)) // Creamos el hilo de contabilidad
+  stack = malloc(STACK_SIZE);
+  stack += STACK_SIZE; // Porque el stack crece hacia abajo
+
+    if ((hilo_cont=clone(hilo_contabilidad, stack, CLONE_VM | CLONE_THREAD, NULL)) < 0) // Creamos el hilo de contabilidad
     {
         perror("Error creando el hilo de contabilidad");
     }
 
-    if (pthread_create(&hilo_sumas, NULL, hilo_mostrar_sumas, NULL)) // El hilo que va mostrando el valor de las sumas cada 7 segundos
+    if ((hilo_sumas=clone(hilo_mostrar_sumas, stack, CLONE_VM | CLONE_THREAD, NULL)) < 0) // El hilo que va mostrando el valor de las sumas cada 7 segundos
     {
         perror("Error creando el hilo de mostrar sumas");
     }
