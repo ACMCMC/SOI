@@ -6,6 +6,15 @@
 #include <math.h>
 #include <unistd.h>
 
+// Códigos de color para formatear la salida en consola
+#define ANSI_COLOR_RED "\x1b[31m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_YELLOW "\x1b[33m"
+#define ANSI_COLOR_BLUE "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN "\x1b[36m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
 /*
 .__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___      
 |  \ |  | |  |  |  | |   \/   |     /       |   |  |      /  __  \  |           ||   ____||   _  \     |  |     /   \     
@@ -144,7 +153,7 @@ void *hilo_mostrar_sumas()
     while (1)
     {
         sleep(7);
-        printf("\nValor calculado hasta ahora: %lf\n\n", suma_doble_precision);
+        printf("\nValor calculado hasta ahora: " ANSI_COLOR_MAGENTA "%lf" ANSI_COLOR_RESET "\n\n", suma_doble_precision);
     }
 }
 
@@ -192,6 +201,8 @@ int main()
     pthread_t hilo;       // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
     int terminacion;      // La terminación que hemos elegido
 
+    printf("Para matarme, ejecuta kill -s SIGUSR1 " ANSI_COLOR_BLUE "%d" ANSI_COLOR_RESET "\n", getpid());
+
     cola_threads.num_elems = 0; // Inicializamos el número de elementos de la cola a 0. Podríamos hacerlo con una función auxiliar, pero me parece complicar innecesariamente el código
 
     // Inicializamos la lista de números, al principio solo contendrá el -1, que indica que no hay números
@@ -237,7 +248,7 @@ int main()
         }
         else
         { // Informamos al usuario de que ya hay 4 hilos
-            printf("Ya hay 4 hilos trabajando. Espera a que acabe uno antes de calcular un nuevo número.\n");
+            printf(ANSI_COLOR_RED "Ya hay 4 hilos trabajando" ANSI_COLOR_RESET ". Espera a que acabe uno antes de calcular un nuevo número.\n");
         }
     }
 }
