@@ -1,20 +1,32 @@
+#define _GNU_SOURCE // Necesario para poder usar clone()
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <sched.h>
 #include <time.h>
-#include <math.h>
 #include <unistd.h>
+#include <sys/wait.h>
+
+// Códigos de color para formatear la salida en consola
+#define ANSI_COLOR_RED "\x1b[31m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_YELLOW "\x1b[33m"
+#define ANSI_COLOR_BLUE "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN "\x1b[36m"
+#define ANSI_COLOR_RESET "\x1b[0m"
 
 #define STACK_SIZE 65536
 
 /*
-.__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___
-|  \ |  | |  |  |  | |   \/   |     /       |   |  |      /  __  \  |           ||   ____||   _  \     |  |     /   \
-|   \|  | |  |  |  | |  \  /  |    |   (----`   |  |     |  |  |  | `---|  |----`|  |__   |  |_)  |    |  |    /  ^  \
-|  . `  | |  |  |  | |  |\/|  |     \   \       |  |     |  |  |  |     |  |     |   __|  |      /     |  |   /  /_\  \
-|  |\   | |  `--'  | |  |  |  | .----)   |      |  `----.|  `--'  |     |  |     |  |____ |  |\  \----.|  |  /  _____  \
-|__| \__|  \______/  |__|  |__| |_______/       |_______| \______/      |__|     |_______|| _| `._____||__| /__/     \__\
+.__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___          ___   
+|  \ |  | |  |  |  | |   \/   |     /       |   |  |      /  __  \  |           ||   ____||   _  \     |  |     /   \        |__ \  
+|   \|  | |  |  |  | |  \  /  |    |   (----`   |  |     |  |  |  | `---|  |----`|  |__   |  |_)  |    |  |    /  ^  \          ) | 
+|  . `  | |  |  |  | |  |\/|  |     \   \       |  |     |  |  |  |     |  |     |   __|  |      /     |  |   /  /_\  \        / /  
+|  |\   | |  `--'  | |  |  |  | .----)   |      |  `----.|  `--'  |     |  |     |  |____ |  |\  \----.|  |  /  _____  \      / /_  
+|__| \__|  \______/  |__|  |__| |_______/       |_______| \______/      |__|     |_______|| _| `._____||__| /__/     \__\    |____| 
+                                                                                                                                    
 
 
 Aldán Creo Mariño, SOI 2020/21
@@ -25,7 +37,7 @@ double suma_doble_precision = 0; // El valor actual de la suma en doble precisi�
 // Creamos un tipo de dato que es una lista enlhAazada, para guardar los números de lotería que hemos creado
 typedef struct num_lista
 {
-    unsigned int num;      // Cada elemento de la lista guarda un número, y
+    int num;               // Cada elemento de la lista guarda un número, y
     struct num_lista *sig; // una referencia al elemento siguiente
 } num_lista;
 
@@ -34,7 +46,7 @@ num_lista *primero_lista_enlazada_nums; // Una referencia global al principio de
 // También declaramos una cola para los hilos trabajadores; iremos introduciéndolos en ella y haciendo phtread_join por orden
 typedef struct elem_cola_hilos
 {
-    int elem;              // El identificador de proceso
+    int elem;                    // El identificador de proceso
     struct elem_cola_hilos *sig; // El siguiente de la cola
 } elem_cola_hilos;
 
@@ -48,13 +60,13 @@ typedef struct cola_hilos // Lo usamos para encapsular la cola, nos permite inse
 cola_hilos cola_threads; // Una variable global también para la cola de hilos trabajadores. El motivo por el que es global es el mismo que para suma_doble_precision.
 
 //Función privada que genera un número aleatorio entre 00000 y 99999
-unsigned int gen_num_loteria()
+int gen_num_loteria()
 {
     return (rand() % (100000));
 }
 
 // Mira si el número ya ha sido generado antes
-int num_ya_generado(unsigned int num)
+int num_ya_generado(int num)
 {
     num_lista elem_lista;
     elem_lista = *primero_lista_enlazada_nums; // Nos quedamos con el primer elemento de la lista para empezar
@@ -70,7 +82,7 @@ int num_ya_generado(unsigned int num)
 }
 
 // Añade un número a la lista de números generados
-void anadir_lista(unsigned int num)
+void anadir_lista(int num)
 {
     num_lista *elem_lista = (num_lista *)malloc(sizeof(num_lista)); // Guardamos memoria para un nuevo elemento de la lista
     elem_lista->num = num;                                          // Establecemos el valor de este elemento
@@ -141,59 +153,60 @@ static void gestor_sigusr1()
 }
 
 // Muestra cada 7 segundos el valor de suma_doble_precision
-void *hilo_mostrar_sumas()
+int hilo_mostrar_sumas()
 {
     while (1)
     {
         sleep(7);
-        printf("\nValor calculado hasta ahora: %lf\n\n", suma_doble_precision);
+        printf("\nValor calculado hasta ahora: " ANSI_COLOR_MAGENTA "%lf" ANSI_COLOR_RESET "\n\n", suma_doble_precision);
     }
+    return 0; // Nunca vamos a llegar aquí
 }
 
 // Si hay hilos trabajadores ejecutándose, espera a que acaben y lee su valor de retorno (el número de lotería elegido) para sumarlo a suma_doble_precision
-void *hilo_contabilidad()
+int hilo_contabilidad()
 {
     int hilo;
-    void *retorno_hilo;
-    unsigned int res_hilo;
+    int res_hilo;
     while (1)
     {
         if (!es_vacia_cola_hilos()) // Si hay hilos trabajadores ejecutándose (están en la cola)...
         {
             hilo = primero_cola_hilos();
-            pthread_join(hilo, &retorno_hilo); // Espero a que acaben
-            res_hilo = *((unsigned int *)retorno_hilo);
+            waitpid(hilo, &res_hilo, 0);
             suma_doble_precision += (double)res_hilo; // Sumo su valor de retorno
-            free(retorno_hilo);                       // Libero el valor de retorno del proceso, ya que hizo un malloc para devolvernos ese valor, pero el free de esa memoria nos corresponde a nosotros
         }
         else
         {
             sched_yield(); // Cedemos el procesador a otros hilos
         }
     }
+    return 0;
 }
 
-void *hilo_trabajador(void *term)
+int hilo_trabajador(void *term)
 {
-    unsigned int *num_loteria = malloc(sizeof(unsigned int)); // num_loteria usa memoria dinámica, porque vamos a devolver un puntero al número, y entonces necesitamos que siga existiendo en memoria tras esta función
-    int terminacion = (int)(uintptr_t)term;                   // Obtenemos la terminación, que se nos había pasado como argumento
+    int num_loteria;
+    int terminacion = (int)(intptr_t)term; // Obtenemos la terminación, que se nos había pasado como argumento
     do
     {
-        *num_loteria = gen_num_loteria();                                          // Generamos nuevos números de lotería...
-    } while ((*num_loteria % 10) != terminacion || num_ya_generado(*num_loteria)); // Mientras no terminen en el número que queremos o ya hayan sido creados antes
-    anadir_lista(*num_loteria);                                                    // Añadimos el número a la lista de números de lotería que ya han salido
-    sleep(8);                                                                      // Esperamos 8 segundos, no hace falta comprobar esta llamada al sistema porque siempre devuelve -1
-    printf("Numero generado: %d\n", *num_loteria);                                 // Imprimimos el número, info para el usuario solamente
+        num_loteria = gen_num_loteria();                                         // Generamos nuevos números de lotería...
+    } while ((num_loteria % 10) != terminacion || num_ya_generado(num_loteria)); // Mientras no terminen en el número que queremos o ya hayan sido creados antes
+    anadir_lista(num_loteria);                                                   // Añadimos el número a la lista de números de lotería que ya han salido
+    sleep(8);                                                                    // Esperamos 8 segundos, no hace falta comprobar esta llamada al sistema porque siempre devuelve -1
+    printf("Numero generado: %d\n", num_loteria);                                // Imprimimos el número, info para el usuario solamente
     return num_loteria;
 }
 
 int main()
 {
-    int hilo_cont;  // El identificador del hilo que se encarga de ir recibiendo los valores de retorno de los hilos del cálculo y va sumando sus valores
-    int hilo_sumas; // Muestra el valor actual cada 7 segundos
-    int hilo;       // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
-    int terminacion;      // La terminación que hemos elegido
-  void* stack; // Puntero al stack que reservaremos para cada hilo
+    int hilo_cont;   // El identificador del hilo que se encarga de ir recibiendo los valores de retorno de los hilos del cálculo y va sumando sus valores
+    int hilo_sumas;  // Muestra el valor actual cada 7 segundos
+    int hilo;        // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
+    int terminacion; // La terminación que hemos elegido
+    void *stack;     // Puntero al stack que reservaremos para cada hilo
+
+    printf("Para matarme, ejecuta kill -s SIGUSR1 " ANSI_COLOR_BLUE "%d" ANSI_COLOR_RESET "\n", getpid());
 
     cola_threads.num_elems = 0; // Inicializamos el número de elementos de la cola a 0. Podríamos hacerlo con una función auxiliar, pero me parece complicar innecesariamente el código
 
@@ -202,7 +215,7 @@ int main()
     primero_lista_enlazada_nums->sig = NULL;                              // No hay un elemento siguiente al primero
     primero_lista_enlazada_nums->num = -1;                                // El primero vale -1, para indicar que no tiene un valor (decisión arbitraria, podríamos implementarlo de forma más estándar con constantes y funciones auxiliares pero me parece escribir código innecesario para un programa tan sencillo)
 
-    srand((unsigned int)time(NULL)); // Semilla para generar números de lotería aleatoriamente
+    srand((int)time(NULL)); // Semilla para generar números de lotería aleatoriamente
 
     if (signal(SIGUSR1, gestor_sigusr1) == SIG_ERR)
     { // El proceso se termina con SIGUSR1
@@ -213,15 +226,15 @@ int main()
         perror("Error en signal()");
     }
 
-  stack = malloc(STACK_SIZE);
-  stack += STACK_SIZE; // Porque el stack crece hacia abajo
+    stack = malloc(STACK_SIZE); // Porque el stack crece hacia abajo, tendremos que sumarle STACK_SIZE al pasarlo a clone()
 
-    if ((hilo_cont=clone(hilo_contabilidad, stack, CLONE_VM | CLONE_THREAD, NULL)) < 0) // Creamos el hilo de contabilidad
+    if ((hilo_cont = clone(hilo_contabilidad, stack + STACK_SIZE, CLONE_VM | CLONE_THREAD | CLONE_SIGHAND, NULL)) < 0) // Creamos el hilo de contabilidad
     {
         perror("Error creando el hilo de contabilidad");
     }
 
-    if ((hilo_sumas=clone(hilo_mostrar_sumas, stack, CLONE_VM | CLONE_THREAD, NULL)) < 0) // El hilo que va mostrando el valor de las sumas cada 7 segundos
+    stack = malloc(STACK_SIZE);
+    if ((hilo_sumas = clone(hilo_mostrar_sumas, stack + STACK_SIZE, CLONE_VM | CLONE_THREAD | CLONE_SIGHAND, NULL)) < 0) // El hilo que va mostrando el valor de las sumas cada 7 segundos
     {
         perror("Error creando el hilo de mostrar sumas");
     }
@@ -231,9 +244,10 @@ int main()
         printf("Introduce una terminación: ");
         scanf(" %d", &terminacion);
         if (cola_threads.num_elems < 4)
-        {                                                                                            // Solo creamos un hilo trabajador si hay menos de 4
-            if (pthread_create(&hilo, NULL, hilo_trabajador, (void *)(uintptr_t)(terminacion % 10))) // Creamos un hilo trabajador que calcule un número con esa terminación (la ponemos en módulo 10 por si acaso el usuario escribiese mal el argumento)
-            {                                                                                        // Creamos un hilo que calcule esa terminación
+        { // Solo creamos un hilo trabajador si hay menos de 4
+            stack = malloc(STACK_SIZE);
+            if ((hilo = clone(hilo_trabajador, stack + STACK_SIZE, CLONE_VM | CLONE_THREAD | CLONE_SIGHAND, (void *)(intptr_t)(terminacion % 10))) < 0) // Creamos un hilo trabajador que calcule un número con esa terminación (la ponemos en módulo 10 por si acaso el usuario escribiese mal el argumento)
+            {                                                                                                                                           // Creamos un hilo que calcule esa terminación
                 perror("Error creando el hilo");
             }
             else
@@ -243,7 +257,7 @@ int main()
         }
         else
         { // Informamos al usuario de que ya hay 4 hilos
-            printf("Ya hay 4 hilos trabajando. Espera a que acabe uno antes de calcular un nuevo número.\n");
+            printf(ANSI_COLOR_RED "Ya hay 4 hilos trabajando" ANSI_COLOR_RESET ". Espera a que acabe uno antes de calcular un nuevo número.\n");
         }
     }
 }
