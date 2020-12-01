@@ -201,7 +201,7 @@ int main()
     pthread_t hilo;       // Lo usamos para identificar el hilo trabajador que crearemos después, no se refiere a un hilo concreto sino que se usará dentro de un bucle para identificar al hilo que en ese momento queramos identificar. Los identificadores de todos los hilos se guardan en una cola, para que el hilo de contabilidad vaya leyendo sus valores de retorno
     int terminacion;      // La terminación que hemos elegido
 
-    printf("Para matarme, ejecuta kill -s SIGUSR1 " ANSI_COLOR_BLUE "%d" ANSI_COLOR_RESET "\n", getpid());
+    printf("Para matarme, ejecuta " ANSI_COLOR_RED "kill " ANSI_COLOR_MAGENTA "-s SIGUSR1 " ANSI_COLOR_BLUE "%d" ANSI_COLOR_RESET "\n", getpid());
 
     cola_threads.num_elems = 0; // Inicializamos el número de elementos de la cola a 0. Podríamos hacerlo con una función auxiliar, pero me parece complicar innecesariamente el código
 
