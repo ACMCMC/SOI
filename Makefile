@@ -1,4 +1,4 @@
-SUBDIRS_ENTREGAS := ./entrega_2 ./entrega_3 ./entrega_4 ./practicas_optativas
+SUBDIRS_ENTREGAS := ./entrega_2 ./entrega_3 ./entrega_4 ./practicas_optativas ./entrega_5
 
 SUBDIRS_PRACTICAS := ./prac_1 ./tests ./foro_hilos
 
