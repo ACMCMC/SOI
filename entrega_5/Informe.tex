@@ -7,6 +7,8 @@
 \usepackage{enumitem}
 \usepackage{fancyhdr}
 \usepackage{xcolor}
+\usepackage{geometry}
+\geometry{a4paper, margin=7em}
 
 
 \lstset{
@@ -22,10 +24,10 @@
     identifierstyle=\color{green!40!black},
 }
 
-\setlength{\parindent}{4em}
-\setlength{\parskip}{1em}
+%%\setlength{\parindent}{4em}
+%%\setlength{\parskip}{1em}
     
-\renewcommand{\familydefault}{phv}
+%%\renewcommand{\familydefault}{phv} %%Seleccionamos Helvetica
     
 \lstdefinestyle{console}
 {
@@ -59,10 +61,6 @@
     
 \begin{document}
 \maketitle
-\newpage
-    
-\tableofcontents
-\newpage
 
 \section{Ejercicio 1}
 
@@ -145,4 +143,6 @@ int main() {
 ffffffffff600000 & ffffffffff601000 & --xp & 00000000 & 00:00 & 0 & [vsyscall] \\ \hline
 \end{tabular}
 \end{center}
+
+\section{Ejercicio 4}
 \end{document}
