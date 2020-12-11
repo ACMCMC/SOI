@@ -17,7 +17,7 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-#define STACK_SIZE 65536
+#define STACK_SIZE (1024*1024)
 
 /*
 .__   __.  __    __  .___  ___.      _______.    __        ______   .___________. _______ .______       __       ___          ___   
@@ -173,7 +173,9 @@ int hilo_contabilidad()
         if (!es_vacia_cola_hilos()) // Si hay hilos trabajadores ejecutándose (están en la cola)...
         {
             hilo = primero_cola_hilos();
-            waitpid(hilo, &res_hilo, 0);
+            if (waitpid(hilo, &res_hilo, 0)==-1) {
+                perror("Error en waitpid()");
+            }
             suma_doble_precision += (double)res_hilo; // Sumo su valor de retorno
         }
         else

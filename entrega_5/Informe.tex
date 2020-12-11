@@ -1,0 +1,148 @@
+\documentclass[a4paper]{article}
+
+\usepackage[spanish]{babel}
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{titling}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+
+
+\lstset{
+    frame=single,
+    breaklines=true,
+    numbers=left,
+    keywordstyle=\color{blue},
+    numbersep=15pt,
+    numberstyle=,
+    basicstyle=\linespread{1.5}\selectfont\ttfamily,
+    commentstyle=\color{gray},
+    stringstyle=\color{orange},
+    identifierstyle=\color{green!40!black},
+}
+
+\setlength{\parindent}{4em}
+\setlength{\parskip}{1em}
+    
+\renewcommand{\familydefault}{phv}
+    
+\lstdefinestyle{console}
+{
+    numbers=left,
+    backgroundcolor=\color{violet},
+    %%belowcaptionskip=1\baselineskip,
+    breaklines=true,
+    %%xleftmargin=\parindent,
+    %%showstringspaces=false,
+    basicstyle=\footnotesize\ttfamily,
+    %%keywordstyle=\bfseries\color{green!40!black},
+    %%commentstyle=\itshape\color{green},
+    %%identifierstyle=\color{blue},
+    %%stringstyle=\color{orange},
+    basicstyle=\scriptsize\color{white}\ttfamily,
+}
+    
+\title{Informe de la práctica 5}
+\author{Aldán Creo Mariño}
+    
+    
+\pagestyle{fancy}
+\fancyfoot[R]{\thepage}
+\fancyfoot[C]{}
+\makeatletter
+\let\runauthor\@author
+\let\runtitle\@title
+\makeatother
+\fancyhead[L]{\runauthor}
+\fancyhead[R]{\thesection}
+    
+\begin{document}
+\maketitle
+\newpage
+    
+\tableofcontents
+\newpage
+
+\section{Ejercicio 1}
+
+
+
+\section{Ejercicio 2}
+
+
+
+\section{Ejercicio 3}
+
+Mi código del ejercicio 3 es el siguiente:
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    printf("Antes del malloc\n");
+    scanf("%*d");
+
+    void* p = malloc(1024*1024*1024);
+    if (p==NULL)
+        perror("Error en malloc");
+
+    printf("Direccion asignada: %p\n", p);
+    scanf("%*d");
+
+    free(p); // No podemos comprobar que ha tenido exito, ya que no se devuelve nada
+    
+    printf("Liberada la memoria\n");
+    scanf("%*d");
+
+    printf("Antes del malloc\n");
+    scanf("%*d");
+
+    p = malloc(1024*1024*1024);
+    if (p==NULL)
+        perror("Error en malloc");
+
+    printf("Direccion asignada: %p\n", p);
+    scanf("%*d");
+
+    free(p); // Lo mismo
+    
+    printf("Liberada la memoria\n");
+    scanf("%*d");
+
+    exit(EXIT_SUCCESS);
+}
+\end{lstlisting}
+
+\begin{center}
+\def\arraystretch{1.5}
+\begin{tabular}{ | c | c | c | c | c | c | c | }
+    \hline
+     inicio & fin & permisos & desplazamiento & RELLENAR & RELLENAR &mapeo \\ \hline
+     55fef1673000 & 55fef1674000 & r--p & 00000000 & 00:31 & 774 & /home/acmc/Repos/SOI/entrega\_5/a.out \\ \hline
+55fef1674000 & 55fef1675000 & r-xp & 00001000 & 00:31 & 774 & /home/acmc/Repos/SOI/entrega\_5/a.out \\ \hline
+55fef1675000 & 55fef1676000 & r--p & 00002000 & 00:31 & 774 & /home/acmc/Repos/SOI/entrega\_5/a.out \\ \hline
+55fef1676000 & 55fef1677000 & r--p & 00002000 & 00:31 & 774 & /home/acmc/Repos/SOI/entrega\_5/a.out \\ \hline
+55fef1677000 & 55fef1678000 & rw-p & 00003000 & 00:31 & 774 & /home/acmc/Repos/SOI/entrega\_5/a.out \\ \hline
+55fef1f84000 & 55fef1fa5000 & rw-p & 00000000 & 00:00 & 0 & [heap] \\ \hline
+7f99eef4b000 & 7f99eef70000 & r--p & 00000000 & 08:05 & 787081 & /usr/lib/x86\_64-linux-gnu/libc-2.31.so \\ \hline
+7f99eef70000 & 7f99ef0e8000 & r-xp & 00025000 & 08:05 & 787081 & /usr/lib/x86\_64-linux-gnu/libc-2.31.so \\ \hline
+7f99ef0e8000 & 7f99ef132000 & r--p & 0019d000 & 08:05 & 787081 & /usr/lib/x86\_64-linux-gnu/libc-2.31.so \\ \hline
+7f99ef132000 & 7f99ef133000 & ---p & 001e7000 & 08:05 & 787081 & /usr/lib/x86\_64-linux-gnu/libc-2.31.so \\ \hline
+7f99ef133000 & 7f99ef136000 & r--p & 001e7000 & 08:05 & 787081 & /usr/lib/x86\_64-linux-gnu/libc-2.31.so \\ \hline
+7f99ef136000 & 7f99ef139000 & rw-p & 001ea000 & 08:05 & 787081 & /usr/lib/x86\_64-linux-gnu/libc-2.31.so \\ \hline
+7f99ef139000 & 7f99ef13f000 & rw-p & 00000000 & 00:00 & 0 &  \\ \hline
+7f99ef151000 & 7f99ef152000 & r--p & 00000000 & 08:05 & 787077 & /usr/lib/x86\_64-linux-gnu/ld-2.31.so \\ \hline
+7f99ef152000 & 7f99ef175000 & r-xp & 00001000 & 08:05 & 787077 & /usr/lib/x86\_64-linux-gnu/ld-2.31.so \\ \hline
+7f99ef175000 & 7f99ef17d000 & r--p & 00024000 & 08:05 & 787077 & /usr/lib/x86\_64-linux-gnu/ld-2.31.so \\ \hline
+7f99ef17e000 & 7f99ef17f000 & r--p & 0002c000 & 08:05 & 787077 & /usr/lib/x86\_64-linux-gnu/ld-2.31.so \\ \hline
+7f99ef17f000 & 7f99ef180000 & rw-p & 0002d000 & 08:05 & 787077 & /usr/lib/x86\_64-linux-gnu/ld-2.31.so \\ \hline
+7f99ef180000 & 7f99ef181000 & rw-p & 00000000 & 00:00 & 0 &  \\ \hline
+7fff40394000 & 7fff403b5000 & rw-p & 00000000 & 00:00 & 0 & [stack] \\ \hline
+7fff403fa000 & 7fff403fd000 & r--p & 00000000 & 00:00 & 0 & [vvar] \\ \hline
+7fff403fd000 & 7fff403fe000 & r-xp & 00000000 & 00:00 & 0 & [vdso] \\ \hline
+ffffffffff600000 & ffffffffff601000 & --xp & 00000000 & 00:00 & 0 & [vsyscall] \\ \hline
+\end{tabular}
+\end{center}
+\end{document}
