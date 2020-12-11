@@ -4,8 +4,9 @@
 
 int var_global; // Variable global que comparten los 3 hilos (el principal y dos que crea)
 
-void* hilo(void* param) {
-    int var_local_2 = var_global * ((int) param);
+void *hilo(void *param)
+{
+    int var_local_2 = var_global * ((int)param);
 
     printf("\nDireccion de la variable global desde el hilo (es la misma): %p\n", &var_global);
     printf("Direccion del parametro recibido: %p\n", &param);
@@ -14,7 +15,8 @@ void* hilo(void* param) {
     return NULL;
 }
 
-int main() {
+int main()
+{
     int var_local = 50;
     int var_local2 = 100;
     pthread_t p1, p2;
@@ -22,20 +24,26 @@ int main() {
     printf("Direccion de la variable global desde el padre: %p\n", &var_global);
     printf("Direcciones de las variables locales: %p, %p\n", &var_local, &var_local2);
 
-    if (pthread_create(&p1, NULL, hilo, (void*)(intptr_t)var_local)) {
+    if (pthread_create(&p1, NULL, hilo, (void *)(intptr_t)var_local))
+    {
         perror("Error creando el hilo");
         exit(EXIT_FAILURE);
     }
-    if (pthread_create(&p2, NULL, hilo, (void*)(intptr_t)var_local2)) {
+    if (pthread_create(&p2, NULL, hilo, (void *)(intptr_t)var_local2))
+    {
         perror("Error creando el hilo");
         exit(EXIT_FAILURE);
     }
 
-    if (pthread_join(p1, NULL)) {
+    if (pthread_join(p1, NULL))
+    {
         perror("Error ejecutando pthread_join");
+        exit(EXIT_FAILURE);
     }
-    if (pthread_join(p2, NULL)) {
+    if (pthread_join(p2, NULL))
+    {
         perror("Error ejecutando pthread_join");
+        exit(EXIT_FAILURE);
     }
 
     exit(EXIT_SUCCESS);
