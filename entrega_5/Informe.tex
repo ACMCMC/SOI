@@ -8,6 +8,7 @@
 \usepackage{fancyhdr}
 \usepackage{xcolor}
 \usepackage{geometry}
+\usepackage{graphicx}
 \geometry{a4paper, margin=7em}
 
 
@@ -25,6 +26,7 @@
 }
 
 %%\setlength{\parindent}{4em}
+\setlength{\parindent}{0em}
 %%\setlength{\parskip}{1em}
     
 %%\renewcommand{\familydefault}{phv} %%Seleccionamos Helvetica
@@ -45,7 +47,7 @@
     basicstyle=\scriptsize\color{white}\ttfamily,
 }
     
-\title{Informe de la práctica 5}
+\title{Mapa de memoria}
 \author{Aldán Creo Mariño}
     
     
@@ -62,56 +64,25 @@
 \begin{document}
 \maketitle
 
-\section{Ejercicio 1}
+\section{Mapa de memoria}
 
+El siguiente mapa de memoria se produce cuando enlazo dinámicamente:
 
+\includegraphics[scale=0.423]{6_padre.png}
 
-\section{Ejercicio 2}
+\section{¿Dónde se guardan las variables?}
 
+\subsection{Variables globales}
 
+Las variables globales se guardan en el segmento de datos ({\ttfamily.data}, en el archivo de ensamblador), inicializadas o sin inicializar. En el mapa de memoria del proceso, corresponderán con la sección con permisos de lectura y escritura, pero no ejecución, que se mapea al archivo del código (línea 5).
 
-\section{Ejercicio 3}
+\subsection{Variables locales}
 
-Mi código del ejercicio 3 es el siguiente:
+Las variables locales se guardan en el stack. Cuando se entra en una función, el compilador de C incluye código para decrementar el puntero del stack, y reservar por tanto memoria para las variables locales a la función. Cuando se sale de la función concreta, se incrementa el puntero, ``liberando'' de forma efectiva esa memoria.
 
-\begin{lstlisting}[language=C]
-#include <stdio.h>
-#include <stdlib.h>
+\subsection{Memoria dinámica}
 
-int main() {
-    printf("Antes del malloc\n");
-    scanf("%*d");
-
-    void* p = malloc(1024*1024*1024);
-    if (p==NULL)
-        perror("Error en malloc");
-
-    printf("Direccion asignada: %p\n", p);
-    scanf("%*d");
-
-    free(p); // No podemos comprobar que ha tenido exito, ya que no se devuelve nada
-    
-    printf("Liberada la memoria\n");
-    scanf("%*d");
-
-    printf("Antes del malloc\n");
-    scanf("%*d");
-
-    p = malloc(1024*1024*1024);
-    if (p==NULL)
-        perror("Error en malloc");
-
-    printf("Direccion asignada: %p\n", p);
-    scanf("%*d");
-
-    free(p); // Lo mismo
-    
-    printf("Liberada la memoria\n");
-    scanf("%*d");
-
-    exit(EXIT_SUCCESS);
-}
-\end{lstlisting}
+La memoria dinámica es un concepto algo más abstracto. En general, podemos decir que se refiere a memoria mapeada en el proceso 
 
 \begin{center}
 \def\arraystretch{1.5}
