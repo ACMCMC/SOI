@@ -91,9 +91,13 @@ Voy a comentar brevemente el significado de cada columna:
     \item Finalmente, la última columna, es el nombre del fichero, o nombres especiales como {\ttfamily [stack]}, o {\ttfamily [heap]}. Las entradas que no tienen nombre son ``regiones anónimas''.
 \end{itemize}
 
+\subsection{El segmento de texto}
+
+El segmento de texto ({\ttfamily .text}), es el que contiene el código ejecutable del programa. En el mapa de memoria, es la entrada que tiene permisos de lectura y ejecución, y está mapeada al ejecutable (línea 2). Si imprimimos las direcciones de funciones, como por ejemplo hacemos en el ejercicio 2, veremos direcciones que corresponden a esa región de la memoria.
+
 \subsection{Variables globales}
 
-Las variables globales se guardan en el segmento de datos ({\ttfamily.data}, si están inicializadas, o si no, en {\ttfamily.bss}). En el mapa de memoria del proceso, corresponderán con la sección con permisos de lectura y escritura, pero no ejecución, que se mapea al archivo del código (línea 5).
+Las variables globales se guardan en el segmento de datos ({\ttfamily.data}, si están inicializadas, o si no, en {\ttfamily.bss}). En el mapa de memoria del proceso, corresponderán con la sección con permisos de lectura y escritura, pero no ejecución, que se mapea al archivo del código (línea 5). Los \emph{vectores} son simplemente una secuencia de bytes, tal que $n_{bytes}=bytes_{elemento}*n_{elementos}$. No tienen nada especial.
 
 \subsection{Variables locales}
 
@@ -168,11 +172,11 @@ El problema es que esto planteaba problemas de rendimiento. Si dos hilos intenta
 
 En cambio, para evitar este problema de rendimiento, la solución que se usa hoy en día es crear nuevos segmentos anónimos para alojar \emph{heaps} separados para cada hilo (que se denominan \emph{arenas}). Así, no se pueden producir carreras críticas porque {\ttfamily malloc} accederá al \emph{heap} propio de cada hilo, y ésto permite paralelizar las llamadas a {\ttfamily malloc}. Eso sí, cabe comentar que {\ttfamily malloc} no crea más arenas que el número de cores, ya que no sería eficiente (no se puede llamar paralelamente a {\ttfamily malloc} más veces que el número máximo de hilos que puede haber en un momento determinado). Es decir, existe un límite superior para las arenas.\footnote{Además, es importante señalar que precisamente por este motivo lo que digo de que ``cada hilo'' tiene su propio heap, no es exactamente así. Más bien, se crean tantas arenas como hilos haya, y cuando un hilo solicita memoria a {\ttfamily malloc}, se elige la primera arena que pueda atender la llamada. Un hilo puede tener asignada memoria dinámica en varias arenas.}.
 
-No sale en el código de mi entregable porque no se pide que llame a {\ttfamily malloc}, pero si modifico un poco el código para que los hilos que creo llamen a {\ttfamily malloc}, se puede ver el efecto que comentaba, en el que se crean \emph{heaps} separados para cada hilo:
+No sale en el código de mi entregable porque no se pide que llame a {\ttfamily malloc}, pero si modifico un poco el código para que los hilos que creo llamen a {\ttfamily malloc}, se puede ver el efecto que comentaba, en el que se crean \emph{arenas} separadas para cada hilo:
 
 \includegraphics[scale=0.407]{Hilos_con_malloc.png}
 
-Recordemos la imagen anterior en la que veíamos la creación de stacks separados. Pues bien, ahora lo que vemos es, además de que se crean los stacks, que tras llamar a {\ttfamily malloc}, se crean los nuevos segmentos de heap propios de cada hilo.
+Recordemos la imagen anterior en la que veíamos la creación de stacks separados. Pues bien, ahora lo que vemos es, además de que se crean los stacks, que tras llamar a {\ttfamily malloc}, se crean los nuevos segmentos para las arenas. (Aunque liberemos la memoria llamando a {\ttfamily free}, estas áreas anónimas de memoria no se desmapean usando {\ttfamily munmap}, sino que se quedan presentes en el mapa de memoria: podrían ser usadas por otros hilos).
 
 Esto es así porque se usa una implementación distinta, {\ttfamily ptmalloc2}, que se diseñó precisamente como un \emph{fork} de {\ttfamily dlmalloc}, para mejorar su funcionamiento con hilos.
 
