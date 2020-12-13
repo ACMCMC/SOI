@@ -70,6 +70,10 @@
 
 \subsection{Comentario previo}
 
+Cada proceso en un sistema operativo moderno con multitarea se ejecuta en su propio \emph{contenedor}. Esto es lo que llamamos \emph{memoria virtual}. Esta memoria virtual se divide en páginas del mismo tamaño, y se incorporan a las páginas de memoria física a través de los registros de las tablas de páginas. Esta tabla la maneja el \emph{kernel}, y la consulta el procesador para saber dónde tiene que efectuar las operaciones. Cada proceso, como tiene su propia memoria virtual, tiene su propia tabla de páginas. Eso sí, no toda la memoria virtual va a estar al mismo tiempo en la memoria física (de ahí la necesidad de mantener un registro de qué páginas están y cuáles no).
+
+La memoria virtual se divide en el espacio de usuario y el de kernel. En Linux, las únicas páginas que siempre van a estar presentes pertenecen al kernel, y son compartidas por todos los procesos (siempre están en la misma posición). Lo que ocurre, por tanto, cuando cambiamos de contexto, es un cambio de algunas páginas del espacio de usuario, pero no de las del núcleo. El mapa de memoria nos permite ver para un proceso los segmentos del espacio de memoria virtual que hemos reservado para un propósito determinado, y a lo largo de este informe comentaré los aspectos más relevantes de lo que podemos ver en este mapa.
+
 \subsection{Mapa de memoria del ejercicio 6}
 
 El siguiente mapa de memoria se produce cuando enlazo dinámicamente\footnote{Estoy usando {\ttfamily cat} para visualizar el contenido de {\ttfamily /proc/\$PID\$/maps} porque es el método sugerido, pero también se puede acceder al mapa de memoria usando {\ttfamily pmap}.}:
@@ -82,7 +86,9 @@ Voy a comentar brevemente el significado de cada columna:
     \item La primera columna se refiere a las direcciones de inicio y fin de la región de cada entrada del mapa. Están alineadas, en mi sistema, a los 4096 bytes (de ahí que, en hexadecimal, aparezcan alineadas a los {\ttfamily 0x1000} bytes). Excepto {\ttfamily [vsyscall]} (hablo sobre ella al final), todas están en la región de usuario.
     \item La segunda columna se refiere a los permisos que tenemos sobre ese segmento. Sobre esto hablaré en detalle más adelante, pero por ahora me limitaré a decir que {\ttfamily r} es para lectura, {\ttfamily w}, para escritura, y {\ttfamily x} para permitir la ejecución. La {\ttfamily p} se refiere a que es un segmento privado (no lo compartimos con otros procesos). Eso es lógico, ya que no queremos compartir ningún segmento de memoria con otro(s). Para no ser redundante, no haré más referencias a esto durante mi informe, pero es relevante comentarlo, ya que podría interesar que haya secciones \emph{shared}, en determinados casos de uso.
     \item La tercera columna es el desplazamiento dentro del archivo: si hemos mapeado ese segmento desde un archivo, entonces aquí indicamos el posible \emph{offset} que aplicamos dentro del mismo. Creo que esto se entiende sin mayor explicación.
-    \item La cuarta columna, se refiere al número mayor y menor de dispositivo. Linux utiliza estos números para identificar los dispositivos (tanto físicos como virtuales), del sistema. El primero se refiere al driver, y el segundo, le sirve al driver para identificar el dispositivo específico. Por ejemplo, en mi caso, {\ttfamily 00:31} se refiere al disco duro.
+    \item La cuarta columna, se refiere al número mayor y menor de dispositivo. Linux utiliza estos números para identificar los dispositivos (tanto físicos como virtuales), del sistema. El primero se refiere al driver, y el segundo, le sirve al driver para identificar el dispositivo específico.
+    \item La quinta columna es el inodo, que identifica de forma única al fichero mapeado a memoria.
+    \item Finalmente, la última columna, es el nombre del fichero, o nombres especiales como {\ttfamily [stack]}, o {\ttfamily [heap]}. Las entradas que no tienen nombre son ``regiones anónimas''.
 \end{itemize}
 
 \subsection{Variables globales}
@@ -176,12 +182,16 @@ Es curioso comentar la última línea del mapa de memoria, ya que corresponde a 
 
 \subsection{Enlazado estático y dinámico}
 
-Por defecto, el enlazador de \emph{gcc} utiliza el enlazado dinámico (el caso del mapa de memoria que salía al principio). Esto es porque el enlazado dinámico ofrece varias ventajas, entre las que destaca especialmente el hecho de que reduce considerablemente el tamaño de los ejecutables. Pese a todo, si en vez de compilar el código del entregable de la forma estándar (enlazado dinámico), se compila especificando la opción {\ttfamily -static}, entonces el enlazado será estático, y esto implica que el código de las librerías que incluímos en nuestro programa se incluirá directamente en el código ejecutable. Esto implica un incremento considerable de tamaño (en mi caso, pasé de los 17kB a 1,6MB).
+Por defecto, el enlazador de \emph{gcc} utiliza el enlazado dinámico (el caso del mapa de memoria que salía al principio). Esto es porque el enlazado dinámico ofrece varias ventajas, entre las que destaca especialmente el hecho de que reduce considerablemente el tamaño de los ejecutables. Pese a todo, si en vez de compilar el código del entregable de la forma estándar (enlazado dinámico), se compila especificando la opción {\ttfamily -static}, entonces el enlazado será estático, y esto implica que el código de las librerías que incluímos en nuestro programa se incluirá directamente en el código ejecutable. Esto implica un incremento considerable de tamaño (en mi caso, pasé de 17kB a 1,6MB).
 
 En el mapa de memoria, también se verá reflejado dicho cambio:
 
 \includegraphics[scale=0.408]{Captura_estatico.png}
 
 Aquí lo que vemos es que su número de entradas ha bajado mucho. Esto es porque todo el código de las librerías, que antes se mapeaba en el proceso, cargando el código desde los propios archivos de las librerías (en el primer mapa, se cargaba desde {\ttfamily libc-2.31.so}, {\ttfamily libpthread-2.31.so} y {\ttfamily ld-2.31.so}). Ahora, todo el código se carga desde el archivo del ejecutable en sí, por lo que las librerías ya no tienen asignado su propio segmento de memoria, y el número de entradas del mapa baja enormemente.
+
+\subsection{{\ttfamily alloca} frente a {\ttfamily malloc}}
+
+En la práctica, se habla también de una función de la familia de {\ttfamily malloc}, {\ttfamily alloca}. Me parece interesante comentar brevemente el funcionamiento de esta última. {\ttfamily alloca}, al contrario que {\ttfamily malloc}, no reserva memoria en el heap o en una región anónima. Lo que hace es decrementar el stack, por lo que nos crea el espacio necesario para almacenar la cantidad solicitada de bytes allí. Si recordamos el apartado en el que hablaba de las variables locales, podremos darnos cuenta de que en el fondo este mecanismo es idéntico al de declarar una variable local en una función. También, como en el caso de las variables locales, al salir de una función, se incrementará el puntero del stack, y por tanto, nuestras variables quedarán ``efectivamente borradas''. (Es decir, podremos reescribir posteriormente en esas posiciones de memoria).
 
 \end{document}
