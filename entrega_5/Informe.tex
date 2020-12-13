@@ -97,15 +97,17 @@ El segmento de texto ({\ttfamily .text}), es el que contiene el código ejecutab
 
 \subsection{Variables globales}
 
-Las variables globales se guardan en el segmento de datos ({\ttfamily.data}, si están inicializadas, o si no, en {\ttfamily.bss}). En el mapa de memoria del proceso, corresponderán con la sección con permisos de lectura y escritura, pero no ejecución, que se mapea al archivo del código (línea 5). Los \emph{vectores} son simplemente una secuencia de bytes, tal que $n_{bytes}=bytes_{elemento}*n_{elementos}$. No tienen nada especial.
+Las variables globales se guardan en el segmento de datos ({\ttfamily.data}, si están inicializadas, o si no, en {\ttfamily.bss})\footnote{Como se indica \href{https://stackoverflow.com/questions/8938303/how-to-get-the-data-and-bss-address-space-in-run-time-in-unix-c-program}{aquí}, dos segmentos pueden estar en la misma región.}. En el mapa de memoria del proceso, corresponderán con la sección con permisos de lectura y escritura, pero no ejecución, que se mapea al archivo del código (línea 5). En mi caso, el segmento de datos sin inicializar no contiene nada (no declaro variables sin inicializar).
+
+Los \emph{vectores} son simplemente una secuencia de bytes, tal que $n_{bytes}=bytes_{elemento}*n_{elementos}$. No tienen nada especial.
 
 \subsection{Variables locales}
 
-Las variables locales se guardan en el stack. Cuando se entra en una función, el compilador de C incluye código para decrementar el stack pointer, y guardar en el espacio que se ``crea'' (no en el mapa de memoria, sino que me refiero al espacio que queda libre al decrementar el puntero) las variables locales. Cuando se sale de la función, se incrementa el puntero, ``liberando'' en cierto modo la memoria.
+Las variables locales se guardan en el stack. Cuando se entra en una función, el compilador de C incluye código para decrementar el \emph{stack pointer}, y guardar en el espacio que se ``crea'' (no en el mapa de memoria, sino que me refiero al espacio que queda libre al decrementar el puntero) las variables locales. Cuando se sale de la función, se incrementa el puntero, ``liberando'' en cierto modo la memoria.
 
 Esto, en el mapa de procesos, se encuentra en la zona que se denota con la etiqueta {\ttfamily [stack]} (zona elevada de memoria, aunque la dirección exacta es aleatoria\footnote{Esto es así por cuestiones de seguridad: se evita que la posición en memoria de las secciones del programa se pueda conocer a priori. Más sobre esta cuestión en \href{https://manybutfinite.com/post/anatomy-of-a-program-in-memory/}{este artículo}.}). Lógicamente, tiene permisos {\ttfamily rw-p}. Podemos leer y escribir, pero no ejecutar, en esa zona.
 
-El stack es el único segmento de memoria en el que, si se produce una referencia a memoria que no está dentro del segmento, pero sí dentro de su máximo total (usualmente unos 8MB), el sistema incrementa automáticamente su tamaño, en vez de lanzar un fallo de segmento (el comportamiento normal)\footnote{Como se indica en \href{https://stackoverflow.com/questions/54564273/dynamic-expansion-of-the-linux-stack}{este enlace}, el kernel decide si lanzar un fallo de segmento o aumentar el tamaño de este segmento comprobando el valor actual del stack pointer.}. Esto es para permitir el crecimiento natural del {\ttfamily stack} con las llamadas a rutinas.
+El stack es el único segmento de memoria en el que, si se produce una referencia a memoria que no está dentro del segmento, pero sí dentro de su máximo total (usualmente unos 8MB), el sistema incrementa automáticamente su tamaño, en vez de lanzar un fallo de segmento (el comportamiento normal)\footnote{Como se indica en \href{https://stackoverflow.com/questions/54564273/dynamic-expansion-of-the-linux-stack}{este enlace}, el kernel decide si lanzar un fallo de segmento o aumentar el tamaño de este segmento comprobando el valor actual del \emph{stack pointer}.}. Esto es para permitir el crecimiento natural del {\ttfamily stack} con las llamadas a rutinas.
 
 \subsection{Memoria dinámica}
 
@@ -114,7 +116,7 @@ La memoria dinámica es un concepto algo más complejo. Voy a hablar de las func
 La gestión de la memoria se basa en el mapeo de direcciones de memoria arbitrariamente grandes a segmentos con permisos de lectura y escritura. Es decir, se trata de pedir al sistema regiones de memoria en las que poder trabajar con datos. {\ttfamily malloc} implementa esta idea a través de dos vías:
 
 \begin{center}
-    \includegraphics[scale=0.7]{malloc.png}\footnote{Imagen disponible \href{https://sploitfun.wordpress.com/2015/02/11/syscalls-used-by-malloc/}{en este artículo}.}
+    \includegraphics[scale=0.6]{malloc.png}\footnote{Imagen disponible \href{https://sploitfun.wordpress.com/2015/02/11/syscalls-used-by-malloc/}{en este artículo}.}
 \end{center}
 
 
@@ -127,7 +129,7 @@ Internamente, {\ttfamily malloc} lleva el control de las zonas de memoria que es
 
 Los chunks no son zonas de memoria totalmente vacías. Fijémonos en la siguiente imagen:
 \begin{center}
-\includegraphics[scale=0.35]{Free_chunk.png}
+\includegraphics[scale=0.30]{Free_chunk.png}
 \end{center}
 
 Lo que podemos ver es que internamente {\ttfamily malloc} divide las zonas de memoria que usa en chunks, y guarda la información sobre el estado de cada chunk en el propio chunk. Además, los chunks siguen una estructura de lista enlazada: cada chunk apunta al siguiente. Además, en los casos de los chunks libres (el de la imagen), incluyen punteros al siguiente chunk libre y también al anterior (por lo que los chunks libres están al mismo tiempo en una lista doblemente enlazada). Esto le permite a {\ttfamily malloc} encontrar rápidamente un chunk libre en la memoria para ofrecérnoslo, y al mismo tiempo es el motivo de que ocurran carreras críticas en la implementación de {\ttfamily dlmalloc}, de la que hablaré más adelante. Pero la idea es que cuando tenemos varios hilos que intentan buscar al mismo tiempo un chunk libre, es una carrera crítica porque al encontrar el chunk libre, se modificará la información del mismo, lo cual podría provocar inconsistencias, ya que el otro hilo estará actuando sobre la lista de chunks libres al mismo tiempo. Por ejemplo, podría darse el caso de que dos llamadas simultáneas a {\ttfamily malloc} en hilos distintos devuelvan el mismo chunk, o que un hilo marque un chunk como ocupado, pero el otro al mismo tiempo el otro lea su información y sea errónea. En definitiva, que se produzcan comportamientos indefinidos por las carreras críticas (que {\ttfamily dlmalloc} resolverá mediante exclusiones mutuas).
@@ -170,7 +172,7 @@ La implementación {\ttfamily dlmalloc}, que es la que se usaba antes en Linux, 
 
 El problema es que esto planteaba problemas de rendimiento. Si dos hilos intentan llamar a {\ttfamily malloc} al mismo tiempo, esta es una carrera crítica, que {\ttfamily malloc} resolvía haciendo una exclusión mutua de la región crítica: primero resolvía una llamada, y una vez resuelta, pasaba a atender la siguiente. De lo contrario, podrían darse problemas de coherencia en los registros internos que usa {\ttfamily malloc}\footnote{\href{https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/}{Ver más en este enlace}.}.
 
-En cambio, para evitar este problema de rendimiento, la solución que se usa hoy en día es crear nuevos segmentos anónimos para alojar \emph{heaps} separados para cada hilo (que se denominan \emph{arenas}). Así, no se pueden producir carreras críticas porque {\ttfamily malloc} accederá al \emph{heap} propio de cada hilo, y ésto permite paralelizar las llamadas a {\ttfamily malloc}. Eso sí, cabe comentar que {\ttfamily malloc} no crea más arenas que el número de cores, ya que no sería eficiente (no se puede llamar paralelamente a {\ttfamily malloc} más veces que el número máximo de hilos que puede haber en un momento determinado). Es decir, existe un límite superior para las arenas.\footnote{Además, es importante señalar que precisamente por este motivo lo que digo de que ``cada hilo'' tiene su propio heap, no es exactamente así. Más bien, se crean tantas arenas como hilos haya, y cuando un hilo solicita memoria a {\ttfamily malloc}, se elige la primera arena que pueda atender la llamada. Un hilo puede tener asignada memoria dinámica en varias arenas.}.
+En cambio, para evitar este problema de rendimiento, la solución que se usa hoy en día es crear nuevos segmentos anónimos para alojar ``\emph{heaps} separados para cada hilo'' (\emph{arenas}). Así, no se pueden producir carreras críticas porque {\ttfamily malloc} accederá al \emph{heap} propio de cada hilo, y ésto permite paralelizar las llamadas a {\ttfamily malloc}. Eso sí, cabe comentar que {\ttfamily malloc} no crea más arenas que el número de cores, ya que no sería eficiente (no se puede llamar paralelamente a {\ttfamily malloc} más veces que el número máximo de hilos que puede haber en un momento determinado). Es decir, existe un límite superior para las arenas.\footnote{Además, es importante señalar que precisamente por este motivo lo que digo de que ``cada hilo'' tiene su propio heap, no es exactamente así. Más bien, se crean tantas arenas como hilos haya, y cuando un hilo solicita memoria a {\ttfamily malloc}, se elige la primera arena que pueda atender la llamada. Un hilo puede tener asignada memoria dinámica en varias arenas.}.
 
 No sale en el código de mi entregable porque no se pide que llame a {\ttfamily malloc}, pero si modifico un poco el código para que los hilos que creo llamen a {\ttfamily malloc}, se puede ver el efecto que comentaba, en el que se crean \emph{arenas} separadas para cada hilo:
 
@@ -192,7 +194,9 @@ En el mapa de memoria, también se verá reflejado dicho cambio:
 
 \includegraphics[scale=0.408]{Captura_estatico.png}
 
-Aquí lo que vemos es que su número de entradas ha bajado mucho. Esto es porque todo el código de las librerías, que antes se mapeaba en el proceso, cargando el código desde los propios archivos de las librerías (en el primer mapa, se cargaba desde {\ttfamily libc-2.31.so}, {\ttfamily libpthread-2.31.so} y {\ttfamily ld-2.31.so}). Ahora, todo el código se carga desde el archivo del ejecutable en sí, por lo que las librerías ya no tienen asignado su propio segmento de memoria, y el número de entradas del mapa baja enormemente.
+Aquí lo que vemos es que su número de entradas ha bajado mucho. Esto es porque todo el código de las librerías, antes se mapeaba en el proceso, y correspondía a las entradas que se mapeaban a {\ttfamily libc-2.31.so}, {\ttfamily libpthread-2.31.so} y {\ttfamily ld-2.31.so}). (Ocupaban varias entradas porque tenían segmentos con diferentes permisos, y también había regiones con permisos {\ttfamily ---p} por el medio por las cuestiones de seguridad que ya mencioné cuando hablé de los hilos).
+
+Ahora, todo el código se carga desde el archivo del ejecutable en sí, por lo que las librerías ya no tienen asignado su propio segmento de memoria, y el número de entradas del mapa baja enormemente (no así el tamaño, como comentaba).
 
 \subsection{{\ttfamily alloca} frente a {\ttfamily malloc}}
 
