@@ -54,6 +54,7 @@ int main()
         perror("Error ejecutando pthread_join");
         exit(EXIT_FAILURE);
     }
+    scanf("%*d"); // Esperamos al usuario
 
     exit(EXIT_SUCCESS);
 }
