@@ -6,7 +6,7 @@ int main() {
     printf("Antes del malloc\n");
     scanf("%*d");
 
-    void* p = malloc(1024*1024*1024);
+    void* p = malloc(1024);
     if (p==NULL) {
         perror("Error en malloc");
     }
