@@ -27,12 +27,13 @@ double realizar_calculo(int i);
 int d;
 
 /*
- __    __   __   __        ______        _______.
-|  |  |  | |  | |  |      /  __  \      /       |
-|  |__|  | |  | |  |     |  |  |  |    |   (----`
-|   __   | |  | |  |     |  |  |  |     \   \    
-|  |  |  | |  | |  `----.|  `--'  | .----)   |   
-|__|  |__| |__| |_______| \______/  |_______/    
+.______   .______        ______     ______  _______     _______.  ______        _______.
+|   _  \  |   _  \      /  __  \   /      ||   ____|   /       | /  __  \      /       |
+|  |_)  | |  |_)  |    |  |  |  | |  ,----'|  |__     |   (----`|  |  |  |    |   (----`
+|   ___/  |      /     |  |  |  | |  |     |   __|     \   \    |  |  |  |     \   \    
+|  |      |  |\  \----.|  `--'  | |  `----.|  |____.----)   |   |  `--'  | .----)   |   
+| _|      | _| `._____| \______/   \______||_______|_______/     \______/  |_______/    
+                                                                                        
                                                  
 
 Aldán Creo Mariño, SOI 2020/21
@@ -51,7 +52,7 @@ int main()
     printf("Introduzca el valor de " ANSI_COLOR_YELLOW "d" ANSI_COLOR_RESET ": "); // Obtenemos el valor de d
     scanf(" %d", &d);
 
-    region_compartida = (double*) mmap(NULL, sizeof(double)*NUM_HILOS, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+    region_compartida = (double*) mmap(NULL, sizeof(double)*NUM_HILOS, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0); // Mapeamos la memoria. Básicamente, crearemos una región en el espacio virtual para guardar NUM_HILOS doubles. Por ejemplo, si tenemos 8 hilos, reservaremos espacio para guardar 8 doubles.
 
     clock_gettime(CLOCK_MONOTONIC, &tinicio); // Obtenemos el tiempo de inicio para el cálculo multihilo
 
@@ -62,17 +63,22 @@ int main()
             perror("Error en fork().");
             exit(EXIT_FAILURE);
         } else if (pids[i] == 0) { // Este es el hijo
-            realizar_calculos(i, region_compartida+i);
+            realizar_calculos(i, region_compartida+i); // En el hijo, la función realizar_calculos se encarga de realizar los cálculos necesarios, y además los guarda en el i-lugar de la región compartida, para que así después el padre pueda leer el resultado.
+            exit(EXIT_SUCCESS); // Como este es el hijo, salimos con EXIT_SUCCESS tras ejecutar la función
         } // Si no, es el padre, y el flujo continúa normalmente.
     }
 
     for (i = 0; i < NUM_HILOS; i++) // Esperamos a que acaben todos los procesos
     {
-        if (waitpid(pids[i], &stat_loc, 0) != pids[i]) {
+        if (waitpid(pids[i], &stat_loc, 0) != pids[i]) { // Vamos esperando a todos los hijos
             perror("Error esperando al proceso hijo");
             exit(EXIT_FAILURE);
         }
-        sumatorio_paralelo += region_compartida[i];
+        if (!(WIFEXITED(stat_loc) && WEXITSTATUS(stat_loc)==EXIT_SUCCESS)) {
+            fprintf(stderr, "El hijo ha salido de forma inesperada. Abortamos.\n");
+            exit(EXIT_FAILURE);
+        }
+        sumatorio_paralelo += region_compartida[i]; // Sumamos el resultado que nos ha almacenado en la región de memoria compartida
     }
 
     clock_gettime(CLOCK_MONOTONIC, &tfin); // Obtenemos el tiempo de fin para el cálculo multihilo
@@ -107,8 +113,7 @@ void realizar_calculos(int arg_proc, double* ubicacion_retorno)
     {
         sumatorio_parcial += realizar_calculo(i);
     }
-    (*ubicacion_retorno) = sumatorio_parcial;
-    exit(EXIT_SUCCESS);
+    (*ubicacion_retorno) = sumatorio_parcial; // Guardamos el resultado en la zona de memoria compartida, que dentro de esta función sólo es un puntero al lugar adecuado
 }
 
 double realizar_calculo(int i) // Realizamos el cálculo para un valor x
