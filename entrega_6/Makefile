@@ -1,4 +1,4 @@
-FILES := entregable1.c
+FILES := entregable1.c proyeccion1.c proyeccion2.c
 OBJS := $(FILES:.c=.o)
 OUTPUTS := $(FILES:.c=.out)
 

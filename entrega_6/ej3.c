@@ -9,12 +9,6 @@
  * Compara los mapas de memoria del proceso antes y después de hacer la proyección del archivo en memoria para determinar la zona del mapa de memoria donde se proyecta el archivo. Estudia las diferencias en el mapa de memoria del proceso entre establecer permisos de solo lectura o de lectura y escritura para la proyección, y entre definir el área de memoria como privada o compartida.
  * 
  * Básicamente, el fichero se proyecta en una ubicación de memoria aleatoria, con los permisos que hemos especificado.
- * 
- * 
- * 
- * 
- * 
- * 
  */
 
 int main() {
