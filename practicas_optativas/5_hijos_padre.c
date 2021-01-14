@@ -16,7 +16,7 @@ void hijo1(int p_read)
 
 void recibir_senal(int pid)
 {
-    printf("Soy el hijo 2 (%d). He recibido SIGUSR1 de %d\n", getpid(), pid);
+    printf("Soy el hijo 2 (%d). He recibido SIGUSR1.\n", getpid());
 }
 
 void hijo2()
