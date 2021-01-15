@@ -7,26 +7,26 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-// Como los procesos no tienen ningún tipo de relación entre ellos, tendrán que usar un medio externo para comunicarse, sí o sí. La mejor opción, creo yo, es usar un archivo mapeado en común en ambos procesos.
+// Como los procesos no tienen ningún tipo de relación entre ellos, tendrán que usar un medio externo para comunicarse, sí o sí. La mejor opción, creo yo, es crear dos pipes que compartam ambos. El proceso 1 escribirá su PID en un pipe que leerá el proceso 2, y viceversa. Así podrán enviarse señales entre ellos.
 
 void procesar_sigusr1() {
     printf("(%d): He recibido SIGUSR 1\n", getpid());
 }
 
-void hijo1() {
+void proceso1() {
     int f1, f2;
-    pid_t pid_propio, pid_hijo2;
+    pid_t pid_propio, pid_proceso2;
 
     signal(SIGUSR1, procesar_sigusr1);
 
     pid_propio = getpid();
-    printf("Soy el hijo 1. Mi PID es %d\n", pid_propio);
+    printf("Soy el proceso 1. Mi PID es %d\n", pid_propio);
 
     if (mkfifo("f1", 0600) < 0) {
         perror("Error en mkfifo()");
         exit(EXIT_FAILURE);
     }
-    if (mkfifo("f2", 0600) < 0) {
+    if (mkfifo("f2", 0600) < 0) { // Creamos el pipe p2 -> p1 desde p1, porque si no open() daría error.
         perror("Error en mkfifo()");
         exit(EXIT_FAILURE);
     }
@@ -43,9 +43,10 @@ void hijo1() {
         perror("Error en open()");
         exit(EXIT_FAILURE);
     }
-    read(f2, &pid_hijo2, sizeof(pid_t));
 
-    kill(pid_hijo2, SIGUSR1);
+    read(f2, &pid_proceso2, sizeof(pid_t)); // Esta llamada se va a bloquear hasta que p2 escriba en el pipe.
+
+    kill(pid_proceso2, SIGUSR1);
 
     if (close(f1)) {
         perror("Error en close()");
@@ -65,21 +66,21 @@ void hijo1() {
     }
 }
 
-void hijo2() {
+void proceso2() {
     int f1, f2;
-    pid_t pid_hijo1, pid_propio;
+    pid_t pid_proceso1, pid_propio;
 
     signal(SIGUSR1, procesar_sigusr1);
 
     pid_propio = getpid();
-    printf("Soy el hijo 2. Mi PID es %d\n", pid_propio);
+    printf("Soy el proceso 2. Mi PID es %d\n", pid_propio);
 
     f1 = open("f1", O_RDONLY, 0600);
     if (f1 < 0) {
         perror("Error en open()");
         exit(EXIT_FAILURE);
     }
-    read(f1, &pid_hijo1, sizeof(pid_t));
+    read(f1, &pid_proceso1, sizeof(pid_t));
 
     f2 = open("f2", O_WRONLY, 0600);
     if (f2 < 0) {
@@ -90,7 +91,7 @@ void hijo2() {
 
     pause();
 
-    kill(pid_hijo1, SIGUSR1);
+    kill(pid_proceso1, SIGUSR1);
 
     if (close(f1)) {
         perror("Error en close()");
@@ -103,10 +104,10 @@ void hijo2() {
 }
 
 int main() {
-    if (access("f1", F_OK)==0) {
-        hijo2();
+    if (access("f1", F_OK)==0) { // Si ya existe el pipe p1 -> p2, entonces este es el proceso 2.
+        proceso2();
     } else {
-        hijo1();
+        proceso1();
     }
 
     exit(EXIT_SUCCESS);
